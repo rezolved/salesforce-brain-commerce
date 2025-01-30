@@ -1,0 +1,59 @@
+{
+    "step-types": {
+        "script-module-step": [{
+            "@type-id": "custom.fullProductExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "Send Products Info",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
+            "function": "fullProductExport",
+            "transactional": "false",
+            "timeout-in-seconds": "900",
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        },
+        {
+            "@type-id": "custom.deltaProductExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "Send Products Info",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
+            "function": "deltaProductExport",
+            "transactional": "false",
+            "timeout-in-seconds": "900",
+            "parameters": {
+                "parameter": [
+                    {
+                        "@name": "dataPriorToHours",
+                        "@type": "string",
+                        "@required": "true",
+                        "description": "Export data prior to hours",
+                        "default-value": "24"
+                    }
+                ]
+            },
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        }]
+    }
+}
