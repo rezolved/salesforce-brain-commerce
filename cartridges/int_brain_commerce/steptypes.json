@@ -8,8 +8,18 @@
             "description": "Send Products Info",
             "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
             "function": "fullProductExport",
-            "transactional": "false",
+            "transactional": "true",
             "timeout-in-seconds": "900",
+            "parameters": {
+                "parameter": [
+                    {
+                        "@name": "listPriceBookId",
+                        "@type": "string",
+                        "@required": "false",
+                        "description": "list price book id"
+                    }
+                ]
+            },
             "status-codes": {
                 "status": [{
                         "@code": "ERROR",
@@ -30,16 +40,21 @@
             "description": "Send Products Info",
             "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
             "function": "deltaProductExport",
-            "transactional": "false",
+            "transactional": "true",
             "timeout-in-seconds": "900",
             "parameters": {
                 "parameter": [
                     {
                         "@name": "dataPriorToHours",
                         "@type": "string",
-                        "@required": "true",
-                        "description": "Export data prior to hours",
-                        "default-value": "24"
+                        "@required": "false",
+                        "description": "Export data prior to hours"
+                    },
+                    {
+                        "@name": "listPriceBookId",
+                        "@type": "string",
+                        "@required": "false",
+                        "description": "list price book id"
                     }
                 ]
             },

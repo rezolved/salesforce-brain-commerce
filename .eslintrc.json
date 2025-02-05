@@ -18,17 +18,7 @@
         "no-multiple-empty-lines": ["error", {"max": 1, "maxEOF": 1, "maxBOF": 1 } ]
     },
     "globals" : {
-      "session": true,
-      "request": true,
-      "response": true,
-      "customer": true,
-      "empty": true,
-      "webreferences": true,
-      "webreferences2": true,
-      "PIPELET_NEXT": true,
-      "PIPELET_ERROR": true,
-      "XML": true,
-      "dw": true
+      "empty": true
     },
     "env": {
       "commonjs": true,
