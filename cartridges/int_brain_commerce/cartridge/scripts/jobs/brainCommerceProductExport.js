@@ -12,6 +12,7 @@ var Transaction = require('dw/system/Transaction');
 var collections = require('*/cartridge/scripts/util/collections');
 var PriceBookMgr = require('dw/catalog/PriceBookMgr');
 var defaultCurrency = Site.current.getDefaultCurrency();
+var bufferDateTime = Site.current.getCustomPreferenceValue('bufferTime');
 
 /**
  * Retrieves a nested property from an object using a dot-separated string.
@@ -54,7 +55,7 @@ function getProductCategories(categories) {
         var categoryPath = [];
         var currentCategory = categories[index];
 
-        while (currentCategory) {
+        while (currentCategory && currentCategory.ID !== 'root') {
             categoryPath.push(currentCategory.ID);
             currentCategory = currentCategory.parent;
         }
@@ -123,7 +124,9 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported) {
     if (response && response.status === 'OK') {
         Transaction.wrap(function () {
             productsToBeExported.forEach(function (product) {
-                product.custom.brainCommerceLastExport = new Date();
+                var bufferDate = new Date();
+                var bufferTime = bufferDate.getTime() + bufferDateTime;
+                product.custom.brainCommerceLastExport = new Date(bufferTime);
             });
         });
     } else {
@@ -142,38 +145,45 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported) {
  * @param {boolean} isDeltaFeed - Whether to process only recently modified products.
  * @param {Date} totalHours - The threshold time for modified products when `isDeltaFeed` is true.
  *  @param {string} listPriceBookId - The ID of the price book to fetch product prices.
- * @returns {boolean} - Returns true if the the process was scuccessful and false otherwise.
+ * @returns {Object} - Returns data related to process such as number of successfully processed products.
  */
 function processProducts(products, isDeltaFeed, totalHours, listPriceBookId) {
     var productsRequest = [];
     var productsToBeExported = [];
+    var productsProcessedSuccessfully = 0;
 
     while (products.hasNext()) {
         var product = products.next();
+        var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup());
 
-        if (product && isDeltaFeed && (product.master || product.variant)) {
-            var productLastModified = new Date(product.getLastModified());
-            var brainCommerceLastExport = (product.custom.brainCommerceLastExport && new Date(product.custom.brainCommerceLastExport)) || null;
-            var productUpdatedBeforeThreshold = totalHours && productLastModified >= totalHours;
-            var productUpdatedBeforeLastExport = brainCommerceLastExport && productLastModified >= brainCommerceLastExport;
-
-            // Do not send the product if it was updated before threshold or not updated after last export
-            if (productUpdatedBeforeThreshold || (!totalHours && productUpdatedBeforeLastExport)) {
-                product = null;
-            }
-        }
-
-        if (product && (product.master || product.variant)) {
-            productsRequest.push(createProductObject(product, listPriceBookId));
-            productsToBeExported.push(product);
-
-            // Send products in chunk size and reset the list
-            if (productsRequest.length >= 100) {
-                if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported)) {
-                    return false;
+        if (eligibleProduct) {
+            if (isDeltaFeed) {
+                var productLastModified = new Date(product.getLastModified());
+                var brainCommerceLastExport = (product.custom.brainCommerceLastExport && new Date(product.custom.brainCommerceLastExport)) || null;
+                var productUpdatedBeforeThreshold = (totalHours && productLastModified >= totalHours) || false;
+                var productUpdatedBeforeLastExport = brainCommerceLastExport && productLastModified >= brainCommerceLastExport;
+                var isProductEligibletoExport = totalHours ? productUpdatedBeforeThreshold : productUpdatedBeforeLastExport;
+                // Do not send the product if it was updated before threshold or not updated after last export
+                if (!isProductEligibletoExport) {
+                    product = null;
                 }
-                productsRequest = [];
-                productsToBeExported = [];
+            }
+
+            if (product) {
+                productsRequest.push(createProductObject(product, listPriceBookId));
+                productsToBeExported.push(product);
+                productsProcessedSuccessfully += 1;
+
+                // Send products in chunk size and reset the list
+                if (productsRequest.length >= 100) {
+                    if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported)) {
+                        return {
+                            productsProcessedSuccessfully: productsProcessedSuccessfully
+                        };
+                    }
+                    productsRequest = [];
+                    productsToBeExported = [];
+                }
             }
         }
     }
@@ -181,11 +191,15 @@ function processProducts(products, isDeltaFeed, totalHours, listPriceBookId) {
     // Send the remaining product in the list
     if (productsRequest.length > 0) {
         if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported)) {
-            return false;
+            return {
+                productsProcessedSuccessfully: productsProcessedSuccessfully
+            };
         }
     }
 
-    return true;
+    return {
+        productsProcessedSuccessfully: productsProcessedSuccessfully
+    };
 }
 
 /**
@@ -217,16 +231,19 @@ function fullProductExport(parameters) {
         listPriceBookId = getPriceBookId();
     }
 
+    var productsProcessedSuccessfully = 0;
+
     try {
         var allProducts = ProductMgr.queryAllSiteProducts();
         if (productAttributes) {
-            processProducts(allProducts, false, null, listPriceBookId);
+            var result = processProducts(allProducts, false, null, listPriceBookId);
+            productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
     } catch (error) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + error.message);
     }
 
-    return new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished');
+    return new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
 }
 
 /**
@@ -244,18 +261,21 @@ function deltaProductExport(parameters) {
         listPriceBookId = getPriceBookId();
     }
 
+    var productsProcessedSuccessfully = 0;
+
     try {
         var allProducts = ProductMgr.queryAllSiteProducts();
         var hours = parameters.dataPriorToHours;
-        var totalHours = new Date(Date.now() - hours * 60 * 60 * 1000);
+        var totalHours = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
         if (productAttributes) {
-            processProducts(allProducts, true, totalHours, listPriceBookId);
+            var result = processProducts(allProducts, true, totalHours, listPriceBookId);
+            productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
     } catch (error) {
         return new Status(Status.ERROR, 'FINISHED', 'Delta Product Export Job Finished with ERROR ' + error.message);
     }
 
-    return new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished');
+    return new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
 }
 
 module.exports = { fullProductExport: fullProductExport, deltaProductExport: deltaProductExport };
