@@ -10,7 +10,7 @@ function getBrainCommerceSDKHeadData() {
     var sdkURL = Site.getCurrent().getCustomPreferenceValue('brainCommerceSDKURL');
 
     return {
-        sdkURL: sdkURL,
+        sdkURL: sdkURL
     };
 }
 
@@ -32,4 +32,4 @@ function getBrainCommerceSDKConfigData() {
 module.exports = {
     getBrainCommerceSDKHeadData: getBrainCommerceSDKHeadData,
     getBrainCommerceSDKConfigData: getBrainCommerceSDKConfigData
-}
+};

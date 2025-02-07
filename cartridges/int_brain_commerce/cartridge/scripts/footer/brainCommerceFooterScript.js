@@ -2,7 +2,10 @@
 
 var Site = require('dw/system/Site');
 
-function afterFooter(params) {
+/**
+ * Afer Footer hook to inject the Brain Commerce config script
+ */
+function afterFooter() {
     var isBrainCommerceSDKEnabled = Site.getCurrent().getCustomPreferenceValue('isBrainCommerceSDKEnabled');
 
     if (isBrainCommerceSDKEnabled) {
@@ -13,10 +16,10 @@ function afterFooter(params) {
         var templateParams = brainCommerceSDKHelpers.getBrainCommerceSDKConfigData();
 
         // Render the Brain Commerce SDK template with the template parameters
-        ISML.renderTemplate(brainCommerceFooter, templateParams);
+        ISML.renderTemplate(brainCommerceSDKTemplate, templateParams);
     }
 }
 
 module.exports = {
     afterFooter: afterFooter
-}
+};

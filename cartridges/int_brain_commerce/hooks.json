@@ -1,0 +1,12 @@
+{
+    "hooks": [
+      {
+        "name": "app.template.htmlHead",
+        "script": "./cartridge/scripts/header/brainCommerceHTMLHead.js"
+      },
+      {
+        "name": "app.template.afterFooter",
+        "script": "./cartridge/scripts/footer/brainCommerceFooterScript.js"
+      }
+    ]
+}
