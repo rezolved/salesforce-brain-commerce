@@ -69,6 +69,60 @@
                     }
                 ]
             }
+        },
+        {
+            "@type-id": "custom.fullFaqExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "exporting faq",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceFaqExport.js",
+            "function": "fullFaqExport",
+            "transactional": "false",
+            "timeout-in-seconds": "900",
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        },
+        {
+            "@type-id": "custom.deltaFaqExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "exporting faq",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceFaqExport.js",
+            "function": "deltaFaqExport",
+            "transactional": "false",
+            "timeout-in-seconds": "900",
+            "parameters": {
+                "parameter": [
+                    {
+                        "@name": "faqDataPriorToHours",
+                        "@type": "string",
+                        "@required": "false",
+                        "description": "Faq Export data prior to hours"
+                    }
+                ]
+            },
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
         }]
     }
 }
