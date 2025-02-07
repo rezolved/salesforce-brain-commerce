@@ -1,0 +1,25 @@
+<script defer="defer">
+  window.addEventListener('load', () => {
+    const newConfig = {
+      BASE_API_URL: ${pdict.baseAPIURL},
+      API_KEY: ${pdict.baseAPIURL}
+    };
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = 500;
+
+    function applyConfig() {
+      if (typeof window.setConfig === 'function') {
+        window.setConfig(newConfig);
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        console.warn(`setConfig not available yet, retrying (${attempts}/${maxAttempts})...`);
+        setTimeout(applyConfig, interval);
+      } else {
+        console.error("setConfig is not available after 10 attempts. Stopping retries.");
+      }
+    }
+    applyConfig();
+  });
+</script>
