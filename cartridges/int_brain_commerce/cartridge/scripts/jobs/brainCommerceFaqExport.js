@@ -72,7 +72,6 @@ function processFaqs(isDelta, totalHours) {
     var faqList = CustomObjectMgr.getAllCustomObjects('brain_commerce_faq_list');
     var faqsProcessedSuccessfully = 0;
 
-
     while (faqList.hasNext()) {
         var faq = faqList.next();
 
@@ -93,7 +92,6 @@ function processFaqs(isDelta, totalHours) {
             faqsRequest.push(createFaqObject(faq));
             faqsToBeExported.push(faq);
             faqsProcessedSuccessfully += 1;
-
 
             // Send faqs in chunk size and reset the list
             if (faqsRequest.length >= 100) {
