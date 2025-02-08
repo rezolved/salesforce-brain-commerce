@@ -1,47 +1,21 @@
 'use strict';
 
+var Site = require('dw/system/Site');
 var Logger = require('dw/system/Logger');
 var Status = require('dw/system/Status');
 var URLUtils = require('dw/web/URLUtils');
-var Site = require('dw/system/Site');
 var ProductMgr = require('dw/catalog/ProductMgr');
-var brainService = require('*/cartridge/scripts/services/brainCommerceService');
-var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('fullProductAttributes')) || {};
-var constants = require('*/cartridge/scripts/constants');
 var Transaction = require('dw/system/Transaction');
-var collections = require('*/cartridge/scripts/util/collections');
 var PriceBookMgr = require('dw/catalog/PriceBookMgr');
-var defaultCurrency = Site.current.getDefaultCurrency();
-var bufferDateTime = Site.current.getCustomPreferenceValue('bufferTime');
 
-/**
- * Retrieves a nested property from an object using a dot-separated string.
- *
- * @param {Object} object - The object from which to retrieve the property.
- * @param {string} chain - A dot-separated string representing the path to the property.
- * @param {*} [defaultValue] - The value to return if the property is not found or is undefined/null.
- * @returns {*} - The value of the nested property if found, otherwise the default value.
- */
-function safeGetProp(object, chain, defaultValue) {
-    var tempObject = object;
-    if (tempObject === null || tempObject !== Object(tempObject)) {
-        return defaultValue;
-    }
-    if (!chain) {
-        return tempObject;
-    }
-    var prop;
-    var props = chain.split('.');
-    for (var q = 0, len = props.length; q < len; q += 1) {
-        prop = props[q];
-        if (prop in tempObject && typeof tempObject[prop] !== 'undefined' && tempObject[prop] !== null) {
-            tempObject = tempObject[prop];
-        } else {
-            return defaultValue;
-        }
-    }
-    return tempObject;
-}
+var brainService = require('*/cartridge/scripts/services/brainCommerceService');
+var constants = require('*/cartridge/scripts/constants');
+var collections = require('*/cartridge/scripts/util/collections');
+var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
+
+var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
+var defaultCurrency = Site.current.getDefaultCurrency();
+var bufferMilliSeconds = Site.current.getCustomPreferenceValue('brainCommerceDeltaExportBufferTime');
 
 /**
  * Generates a list of category paths from an array of categories.
@@ -56,7 +30,7 @@ function getProductCategories(categories) {
         var currentCategory = categories[index];
 
         while (currentCategory && currentCategory.ID !== 'root') {
-            categoryPath.push(currentCategory.ID);
+            categoryPath.push(currentCategory.displayName);
             currentCategory = currentCategory.parent;
         }
 
@@ -78,24 +52,38 @@ function createProductObject(product, listPriceBookId) {
     var productData = {};
     var categories = product.categories;
 
+    if (!product) {
+        return productData;
+    }
+
     // Fetch system attribute values
     systemAttributes.forEach(function (attribute) {
         if (attribute && attribute.brainCommerceAttr && attribute.sfccAttr) {
-            productData[attribute.brainCommerceAttr] = safeGetProp(product, attribute.sfccAttr, '') || '';
+            productData[attribute.brainCommerceAttr] = brainCommerceUtils.safeGetProp(product, attribute.sfccAttr, '') || '';
         }
     });
 
-    // Custom attribute values
+    // Fetch Custom attribute values
     customAttributes.forEach(function (attribute) {
         if (attribute && attribute.brainCommerceAttr && attribute.sfccAttr) {
-            var customAttributeValue = safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
+            var customAttributeValue = brainCommerceUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
             productData[attribute.brainCommerceAttr] = !empty(customAttributeValue) ? customAttributeValue : '';
         }
     });
 
-    // Fetch addtional values
+    /**
+     * Fetch additional product data and formats it for the Brain Commerce service.
+     * 1. Category - comma separated list of category paths
+     * 2. Price - List Price
+     * 3. Sale Price - Sale Price
+     * 4. Availability - In Stock or Out of Stock
+     * 5. Item Group ID - Master product ID for variants
+     * 6. Product Status - Active or Inactive
+     * 7. Link - Product URL
+     * 8. Image Link - Product Image URL
+     */
     productData.product_category = getProductCategories(categories);
-    productData.price = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
+    productData.price = product.master ? 0 : product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
     productData.sale_price = product.priceModel.minPrice.value || 0;
     productData.availability = productData.availability === 'IN_STOCK' ? 'in_stock' : 'out_of_stock';
     productData.item_group_id = product.variant ? product.masterProduct.ID : '';
@@ -109,12 +97,41 @@ function createProductObject(product, listPriceBookId) {
 }
 
 /**
+ * Creates a string with product availability list price and sale price joined by a pipe.
+ * @param {dw.catalog.Product} product Product Object
+ * @param {string} listPriceBookId list price book ID
+ * @returns {string} availabilityAndPriceStatus availability and price status
+ */
+function getProductAvailabilityAndPriceStatus(product, listPriceBookId) {
+    if (!product) {
+        return '';
+    }
+
+    var availabilityAndPriceStatus = [];
+
+    // Get product availability
+    var availability = (product.availabilityModel && product.availabilityModel.availabilityStatus) || '';
+    availabilityAndPriceStatus.push(availability);
+
+    // Get product list price
+    var listPrice = product.master ? 0 : product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
+    availabilityAndPriceStatus.push(listPrice);
+
+    // Get product sale price
+    var salePrice = (product.priceModel && product.priceModel.minPrice.value) || 0;
+    availabilityAndPriceStatus.push(salePrice);
+
+    return availabilityAndPriceStatus.join('|');
+}
+
+/**
  * Sends the products to Brain Commerce
  * @param {Array} productsRequest product request object
  * @param {Array} productsToBeExported product to be exported to Brain Commerce
+ * @param {string} listPriceBookId list price book ID
  * @returns {boolean} true if products were sent, false otherwise
  */
-function sendProductsToBrainCommerce(productsRequest, productsToBeExported) {
+function sendProductsToBrainCommerce(productsRequest, productsToBeExported, listPriceBookId) {
     var response = brainService.service.call({
         requestBody: productsRequest,
         endPoint: constants.PRODUCT_END_POINT
@@ -122,13 +139,15 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported) {
 
     // Update brainCommerceLastExport product custom attribute
     if (response && response.status === 'OK') {
-        Transaction.wrap(function () {
-            productsToBeExported.forEach(function (product) {
-                var bufferDate = new Date();
-                var bufferTime = bufferDate.getTime() + bufferDateTime;
-                product.custom.brainCommerceLastExport = new Date(bufferTime);
-            });
+        Transaction.begin();
+        var currentDate = new Date();
+        var bufferTime = currentDate.getTime() + (bufferMilliSeconds * 1000);
+        productsToBeExported.forEach(function (product) {
+            var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
+            product.custom.brainCommerceLastExport = new Date(bufferTime);
+            product.custom.brainCommerceAvailabilityAndPriceStatus = productAvailabilityAndPriceStatus;
         });
+        Transaction.commit();
     } else {
         Logger.error('Error in Brain commerce service: {0}', response.msg);
         return false;
@@ -138,31 +157,54 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported) {
 }
 
 /**
+ * Checks if the product is eligible for delta export
+ * @param {dw.catalog.Product} product Product Object
+ * @param {Date} fromThresholdDate Threshold for modified products
+ * @param {string} listPriceBookId list price book ID
+ * @returns {boolean} true if product is eligible for delta export, false otherwise
+ */
+function isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBookId) {
+    if (!product) {
+        return false;
+    }
+
+    // Check if the product is updated after threshold date or last export
+    var productLastModified = new Date(product.getLastModified());
+    var brainCommerceLastExport = (product.custom.brainCommerceLastExport && new Date(product.custom.brainCommerceLastExport)) || null;
+    var isProductUpdatedAfterThreshold = (fromThresholdDate && productLastModified >= fromThresholdDate) || false;
+    var isProductUpdatedAfterLastExport = brainCommerceLastExport && productLastModified >= brainCommerceLastExport;
+    var isProductUpdated = (fromThresholdDate ? isProductUpdatedAfterThreshold : isProductUpdatedAfterLastExport);
+
+    // Check if the product availability or price status has changed
+    var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
+    var availabilityOrPriceStatusChanged = product.custom.brainCommerceAvailabilityAndPriceStatus !== productAvailabilityAndPriceStatus;
+
+    return isProductUpdated || availabilityOrPriceStatusChanged;
+}
+
+/**
  * Processes a collection of products, filtering based on modification time and online status,
  * then sends batched product data to the Brain commerce service.
  *
  * @param {Iterator} products - An iterator of product objects.
  * @param {boolean} isDeltaFeed - Whether to process only recently modified products.
- * @param {Date} totalHours - The threshold time for modified products when `isDeltaFeed` is true.
+ * @param {Date} fromThresholdDate - The threshold time for modified products when `isDeltaFeed` is true.
  *  @param {string} listPriceBookId - The ID of the price book to fetch product prices.
  * @returns {Object} - Returns data related to process such as number of successfully processed products.
  */
-function processProducts(products, isDeltaFeed, totalHours, listPriceBookId) {
+function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBookId) {
     var productsRequest = [];
     var productsToBeExported = [];
     var productsProcessedSuccessfully = 0;
 
     while (products.hasNext()) {
         var product = products.next();
-        var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup());
 
+        // Only process products that are type of product, master or variant
+        var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup());
         if (eligibleProduct) {
             if (isDeltaFeed) {
-                var productLastModified = new Date(product.getLastModified());
-                var brainCommerceLastExport = (product.custom.brainCommerceLastExport && new Date(product.custom.brainCommerceLastExport)) || null;
-                var productUpdatedBeforeThreshold = (totalHours && productLastModified >= totalHours) || false;
-                var productUpdatedBeforeLastExport = brainCommerceLastExport && productLastModified >= brainCommerceLastExport;
-                var isProductEligibletoExport = totalHours ? productUpdatedBeforeThreshold : productUpdatedBeforeLastExport;
+                var isProductEligibletoExport = isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBookId);
                 // Do not send the product if it was updated before threshold or not updated after last export
                 if (!isProductEligibletoExport) {
                     product = null;
@@ -176,7 +218,7 @@ function processProducts(products, isDeltaFeed, totalHours, listPriceBookId) {
 
                 // Send products in chunk size and reset the list
                 if (productsRequest.length >= 100) {
-                    if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported)) {
+                    if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported, listPriceBookId)) {
                         return {
                             productsProcessedSuccessfully: productsProcessedSuccessfully
                         };
@@ -266,9 +308,9 @@ function deltaProductExport(parameters) {
     try {
         var allProducts = ProductMgr.queryAllSiteProducts();
         var hours = parameters.dataPriorToHours;
-        var totalHours = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
+        var fromThresholdDate = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
         if (productAttributes) {
-            var result = processProducts(allProducts, true, totalHours, listPriceBookId);
+            var result = processProducts(allProducts, true, fromThresholdDate, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
     } catch (error) {
