@@ -1,13 +1,15 @@
 'use strict';
 
-var CustomObjectMgr = require('dw/object/CustomObjectMgr');
-var brainService = require('*/cartridge/scripts/services/brainCommerceService');
-var constants = require('*/cartridge/scripts/constants');
+var Site = require('dw/system/Site');
 var Status = require('dw/system/Status');
 var Logger = require('dw/system/Logger');
 var Transaction = require('dw/system/Transaction');
-var Site = require('dw/system/Site');
-var bufferDateTime = Site.current.getCustomPreferenceValue('bufferTime');
+var CustomObjectMgr = require('dw/object/CustomObjectMgr');
+
+var constants = require('*/cartridge/scripts/constants');
+var brainService = require('*/cartridge/scripts/services/brainCommerceService');
+
+var bufferMilliSeconds = Site.current.getCustomPreferenceValue('brainCommerceDeltaExportBufferTimeFAQ');
 
 /**
  * Creates an FAQ object from the given FAQ data.
@@ -19,14 +21,14 @@ var bufferDateTime = Site.current.getCustomPreferenceValue('bufferTime');
  * @returns {Object} Returns a formatted FAQ object with question, answer, text, and an internal ID.
  */
 function createFaqObject(faq) {
-    var faqs = {};
+    var faqObject = {
+        question: faq.custom.question,
+        answer: faq.custom.answer || '',
+        text: faq.custom.answer || '',
+        internal_id: 0
+    };
 
-    faqs.question = faq.custom.question;
-    faqs.answer = faq.custom.answer;
-    faqs.text = faq.custom.answer;
-    faqs.internal_id = 0;
-
-    return faqs;
+    return faqObject;
 }
 
 /**
@@ -45,10 +47,10 @@ function sendFaqsToBrainCommerce(faqsRequest, faqsToBeExported) {
     // Update brainCommerceFaqLastExport faq custom attribute
     if (response && response.status === 'OK') {
         Transaction.wrap(function () {
-            faqsToBeExported.forEach(function (faqLastExport) {
-                var bufferDate = new Date();
-                var bufferTime = bufferDate.getTime() + bufferDateTime;
-                faqLastExport.custom.brainCommerceFaqLastExport = new Date(bufferTime);
+            var currentDate = new Date();
+            var bufferTime = currentDate.getTime() + (bufferMilliSeconds * 1000);
+            faqsToBeExported.forEach(function (faq) {
+                faq.custom.brainCommerceFaqLastExport = new Date(bufferTime);
             });
         });
     } else {
@@ -69,7 +71,8 @@ function sendFaqsToBrainCommerce(faqsRequest, faqsToBeExported) {
 function processFaqs(isDelta, totalHours) {
     var faqsRequest = [];
     var faqsToBeExported = [];
-    var faqList = CustomObjectMgr.getAllCustomObjects('brain_commerce_faq_list');
+    var faqCustomObjectID = Site.getCurrent().getCustomPreferenceValue('brainCommerceFAQCustomObjectID');
+    var faqList = CustomObjectMgr.getAllCustomObjects(faqCustomObjectID);
     var faqsProcessedSuccessfully = 0;
 
     while (faqList.hasNext()) {
