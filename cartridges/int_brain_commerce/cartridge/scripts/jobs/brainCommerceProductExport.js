@@ -15,7 +15,7 @@ var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
 
 var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 var defaultCurrency = Site.current.getDefaultCurrency();
-var bufferSeconds = Site.current.getCustomPreferenceValue('brainCommerceDeltaExportBufferTime');
+var bufferMilliSeconds = Site.current.getCustomPreferenceValue('brainCommerceDeltaExportBufferTime');
 
 /**
  * Generates a list of category paths from an array of categories.
@@ -141,7 +141,7 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
     if (response && response.status === 'OK') {
         Transaction.begin();
         var currentDate = new Date();
-        var bufferTime = currentDate.getTime() + (bufferSeconds * 1000);
+        var bufferTime = currentDate.getTime() + (bufferMilliSeconds * 1000);
         productsToBeExported.forEach(function (product) {
             var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
             product.custom.brainCommerceLastExport = new Date(bufferTime);
