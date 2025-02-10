@@ -7,7 +7,7 @@ var Site = require('dw/system/Site');
  * @returns {Object} - The Brain Commerce SDK Head data object
  */
 function getBrainCommerceSDKHeadData() {
-    var sdkURL = Site.getCurrent().getCustomPreferenceValue('brainCommerceSDKURL');
+    var sdkURL = Site.getCurrent().getCustomPreferenceValue('brainCommerceSDKURL') || '';
 
     return {
         sdkURL: sdkURL
@@ -19,8 +19,8 @@ function getBrainCommerceSDKHeadData() {
  * @returns {Object} - The Brain Commerce SDK Config data object
  */
 function getBrainCommerceSDKConfigData() {
-    var baseAPIURL = Site.getCurrent().getCustomPreferenceValue('brainCommerceBaseAPIURL');
-    var sdkAPIKey = Site.getCurrent().getCustomPreferenceValue('brainCommerceSDKAPIKey');
+    var baseAPIURL = Site.getCurrent().getCustomPreferenceValue('brainCommerceBaseAPIURL') || '';
+    var sdkAPIKey = Site.getCurrent().getCustomPreferenceValue('brainCommerceSDKAPIKey') || '';
 
     return {
         baseAPIURL: baseAPIURL,
