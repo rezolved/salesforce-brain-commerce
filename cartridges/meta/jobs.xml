@@ -1,0 +1,85 @@
+<jobs xmlns="http://www.demandware.com/xml/impex/jobs/2015-07-01">
+    <job job-id="BrainCommerceDeltaProductExport">
+        <description/>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="deltaProductExport" type="custom.deltaProductExport" enforce-restart="false">
+                <description/>
+                <parameters>
+                    <parameter name="dataPriorToHours">0</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-once enabled="false">
+                <date>2025-01-31Z</date>
+                <time>04:44:00.000Z</time>
+            </run-once>
+        </triggers>
+    </job>
+
+    <job job-id="BrainCommerceFullFaqExport">
+        <description/>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="BrainCommerceFullFaqExport" type="custom.fullFaqExport" enforce-restart="false">
+                <description/>
+                <parameters/>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-once enabled="false">
+                <date>2025-02-05Z</date>
+                <time>12:39:00.000Z</time>
+            </run-once>
+        </triggers>
+    </job>
+
+    <job job-id="BrainCommerceFullProductExport">
+        <description/>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="fullProductExport" type="custom.fullProductExport" enforce-restart="false">
+                <description/>
+                <parameters>
+                    <parameter name="listPriceBookId">usd-m-list-prices</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-recurring enabled="false">
+                <recurrence>
+                    <date-from>2025-01-31Z</date-from>
+                    <start-time>20:59:00.000Z</start-time>
+                    <interval>12M</interval>
+                    <day-of-week/>
+                </recurrence>
+            </run-recurring>
+        </triggers>
+    </job>
+
+    <job job-id="BrainCommerceDeltaFaqExport">
+        <description/>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="BrainCommerceDeltaFaqExport" type="custom.deltaFaqExport" enforce-restart="false">
+                <description/>
+                <parameters/>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-once enabled="false">
+                <date>2025-02-05Z</date>
+                <time>12:45:00.000Z</time>
+            </run-once>
+        </triggers>
+    </job>
+</jobs>

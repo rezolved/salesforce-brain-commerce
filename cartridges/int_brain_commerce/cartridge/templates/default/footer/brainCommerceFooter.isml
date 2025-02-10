@@ -1,8 +1,8 @@
 <script defer="defer">
   window.addEventListener('load', () => {
     const newConfig = {
-      BASE_API_URL: ${pdict.baseAPIURL},
-      API_KEY: ${pdict.baseAPIURL}
+      BASE_API_URL: "${pdict.baseAPIURL}",
+      API_KEY: "${pdict.sdkAPIKey}"
     };
 
     let attempts = 0;
