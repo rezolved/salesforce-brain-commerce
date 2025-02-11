@@ -9,7 +9,18 @@ var CustomObjectMgr = require('dw/object/CustomObjectMgr');
 var constants = require('*/cartridge/scripts/constants');
 var brainService = require('*/cartridge/scripts/services/brainCommerceService');
 
-var bufferMilliSeconds = Site.current.getCustomPreferenceValue('brainCommerceDeltaExportBufferTimeFAQ');
+/**
+ * Retrieves the last export timestamp from the 'brainCommerce' custom object.
+*
+* @returns {string|null} The last export timestamp if available, otherwise null.
+*/
+function getCustomObject() {
+    var brainCommerceFaqCustomObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce');
+    var braincommerceLastFaqExport = brainCommerceFaqCustomObject.custom.faqLastExport;
+    return braincommerceLastFaqExport;
+}
+
+var braincommerceLastFaqExport = getCustomObject();
 
 /**
  * Creates an FAQ object from the given FAQ data.
@@ -38,22 +49,14 @@ function createFaqObject(faq) {
  * @param {Array} faqsToBeExported - An array of FAQ objects to be updated with the last export timestamp.
  * @returns {boolean} Returns true if the request was successful, otherwise false.
  */
-function sendFaqsToBrainCommerce(faqsRequest, faqsToBeExported) {
+function sendFaqsToBrainCommerce(faqsRequest) {
     var response = brainService.service.call({
         requestBody: faqsRequest,
         endPoint: constants.FAQ_END_POINT
     });
 
     // Update brainCommerceFaqLastExport faq custom attribute
-    if (response && response.status === 'OK') {
-        Transaction.wrap(function () {
-            var currentDate = new Date();
-            var bufferTime = currentDate.getTime() + (bufferMilliSeconds * 1000);
-            faqsToBeExported.forEach(function (faq) {
-                faq.custom.brainCommerceFaqLastExport = new Date(bufferTime);
-            });
-        });
-    } else {
+    if (!(response && response.status === 'OK')) {
         Logger.error('Error in Brain commerce service: {0}', response.msg);
         return false;
     }
@@ -80,7 +83,7 @@ function processFaqs(isDelta, totalHours) {
 
         if (faq && isDelta) {
             var customObjectLastModified = new Date(faq.getLastModified());
-            var brainCommerceFaqLastExport = (faq.custom.brainCommerceFaqLastExport && new Date(faq.custom.brainCommerceFaqLastExport)) || null;
+            var brainCommerceFaqLastExport = (braincommerceLastFaqExport && new Date(braincommerceLastFaqExport)) || null;
             var faqUpdatedBeforeThreshold = (totalHours && customObjectLastModified >= totalHours) || false;
             var faqUpdatedBeforeLastExport = brainCommerceFaqLastExport && customObjectLastModified >= brainCommerceFaqLastExport;
             var isFaqEligibletoExport = totalHours ? faqUpdatedBeforeThreshold : faqUpdatedBeforeLastExport;
@@ -159,6 +162,12 @@ function deltaFaqExport(parameters) {
         var totalHours = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
         var result = processFaqs(true, totalHours);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
+        if (faqsProcessedSuccessfully > 0) {
+            Transaction.wrap(function () {
+                var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
+                customObject.custom.faqLastExport = new Date();
+            });
+        }
     } catch (error) {
         return new Status(Status.ERROR, 'FINISHED', 'Delta Faq Export Job Finished with ERROR ' + error.message);
     }

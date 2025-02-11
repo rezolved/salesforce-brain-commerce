@@ -15,8 +15,20 @@ var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
 
 var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 var defaultCurrency = Site.current.getDefaultCurrency();
-var bufferMilliSeconds = Site.current.getCustomPreferenceValue('brainCommerceDeltaExportBufferTime');
+var CustomObjectMgr = require('dw/object/CustomObjectMgr');
 
+/**
+ * Retrieves the last export timestamp from the 'brainCommerce' custom object.
+*
+* @returns {string|null} The last export timestamp if available, otherwise null.
+*/
+function getCustomObject() {
+    var brainCommerceProductCustomObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce');
+    var braincommerceProductLastExport = brainCommerceProductCustomObject.custom.productLastExport;
+    return braincommerceProductLastExport;
+}
+
+var braincommerceProductLastExport = getCustomObject();
 /**
  * Generates a list of category paths from an array of categories.
  *
@@ -83,7 +95,7 @@ function createProductObject(product, listPriceBookId) {
      * 8. Image Link - Product Image URL
      */
     productData.product_category = getProductCategories(categories);
-    productData.price = product.master ? 0 : product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
+    productData.price = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
     productData.sale_price = product.priceModel.minPrice.value || 0;
     productData.availability = productData.availability === 'IN_STOCK' ? 'in_stock' : 'out_of_stock';
     productData.item_group_id = product.variant ? product.masterProduct.ID : '';
@@ -114,7 +126,7 @@ function getProductAvailabilityAndPriceStatus(product, listPriceBookId) {
     availabilityAndPriceStatus.push(availability);
 
     // Get product list price
-    var listPrice = product.master ? 0 : product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
+    var listPrice = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
     availabilityAndPriceStatus.push(listPrice);
 
     // Get product sale price
@@ -140,11 +152,8 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
     // Update brainCommerceLastExport product custom attribute
     if (response && response.status === 'OK') {
         Transaction.begin();
-        var currentDate = new Date();
-        var bufferTime = currentDate.getTime() + (bufferMilliSeconds * 1000);
         productsToBeExported.forEach(function (product) {
             var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-            product.custom.brainCommerceLastExport = new Date(bufferTime);
             product.custom.brainCommerceAvailabilityAndPriceStatus = productAvailabilityAndPriceStatus;
         });
         Transaction.commit();
@@ -170,14 +179,14 @@ function isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBo
 
     // Check if the product is updated after threshold date or last export
     var productLastModified = new Date(product.getLastModified());
-    var brainCommerceLastExport = (product.custom.brainCommerceLastExport && new Date(product.custom.brainCommerceLastExport)) || null;
+    var brainCommerceLastExport = (braincommerceProductLastExport && new Date(braincommerceProductLastExport)) || null;
     var isProductUpdatedAfterThreshold = (fromThresholdDate && productLastModified >= fromThresholdDate) || false;
-    var isProductUpdatedAfterLastExport = brainCommerceLastExport && productLastModified >= brainCommerceLastExport;
+    var isProductUpdatedAfterLastExport = brainCommerceLastExport && productLastModified > brainCommerceLastExport;
     var isProductUpdated = (fromThresholdDate ? isProductUpdatedAfterThreshold : isProductUpdatedAfterLastExport);
 
     // Check if the product availability or price status has changed
     var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-    var availabilityOrPriceStatusChanged = product.custom.brainCommerceAvailabilityAndPriceStatus !== productAvailabilityAndPriceStatus;
+    var availabilityOrPriceStatusChanged = productAvailabilityAndPriceStatus && product.custom.brainCommerceAvailabilityAndPriceStatus !== productAvailabilityAndPriceStatus;
 
     return isProductUpdated || availabilityOrPriceStatusChanged;
 }
@@ -232,7 +241,7 @@ function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBook
 
     // Send the remaining product in the list
     if (productsRequest.length > 0) {
-        if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported)) {
+        if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported, listPriceBookId)) {
             return {
                 productsProcessedSuccessfully: productsProcessedSuccessfully
             };
@@ -312,6 +321,12 @@ function deltaProductExport(parameters) {
         if (productAttributes) {
             var result = processProducts(allProducts, true, fromThresholdDate, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
+        }
+        if (productsProcessedSuccessfully > 0) {
+            Transaction.wrap(function () {
+                var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
+                customObject.custom.productLastExport = new Date();
+            });
         }
     } catch (error) {
         return new Status(Status.ERROR, 'FINISHED', 'Delta Product Export Job Finished with ERROR ' + error.message);
