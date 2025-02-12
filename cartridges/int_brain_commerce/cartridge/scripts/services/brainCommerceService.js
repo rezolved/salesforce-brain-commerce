@@ -8,7 +8,7 @@ var service = LocalServiceRegistry.createService('int_braincommerce.http.service
         svc.setURL(svc.getConfiguration().getCredential().getURL() + params.endPoint);
         svc.setRequestMethod('POST');
         svc.addHeader('Content-Type', 'application/json');
-        svc.addHeader('X-API-Key', Site.current.getCustomPreferenceValue('brainCommerceApiKey'));
+        svc.addHeader('X-API-Key', Site.current.getCustomPreferenceValue('ingestorAPIKey'));
         svc.addHeader('accept', 'application/json');
         return JSON.stringify(params.requestBody);
     },

@@ -6,9 +6,9 @@ var Site = require('dw/system/Site');
  * Afer Footer hook to inject the Brain Commerce config script
  */
 function afterFooter() {
-    var isBrainCommerceSDKEnabled = Site.getCurrent().getCustomPreferenceValue('isBrainCommerceSDKEnabled');
+    var isFrontendEnabled = Site.getCurrent().getCustomPreferenceValue('isFrontendEnabled');
 
-    if (isBrainCommerceSDKEnabled) {
+    if (isFrontendEnabled) {
         var ISML = require('dw/template/ISML');
         var brainCommerceSDKHelpers = require('*/cartridge/scripts/helpers/brainCommerceSDKHelpers');
 
