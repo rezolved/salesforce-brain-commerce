@@ -3,32 +3,18 @@
 var Site = require('dw/system/Site');
 var Status = require('dw/system/Status');
 var Logger = require('dw/system/Logger');
-var Transaction = require('dw/system/Transaction');
 var CustomObjectMgr = require('dw/object/CustomObjectMgr');
 
 var constants = require('*/cartridge/scripts/constants');
 var brainService = require('*/cartridge/scripts/services/brainCommerceService');
+var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
 
-/**
- * Retrieves the last export timestamp from the 'brainCommerce' custom object.
-*
-* @returns {string|null} The last export timestamp if available, otherwise null.
-*/
-function getCustomObject() {
-    var brainCommerceFaqCustomObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce');
-    var braincommerceLastFaqExport = brainCommerceFaqCustomObject.custom.faqLastExport;
-    return braincommerceLastFaqExport;
-}
-
-var braincommerceLastFaqExport = getCustomObject();
+var braincommerceLastFaqExport = brainCommerceConfigsHelpers.getBrainCommerceFAQsLastExportTime();
 
 /**
  * Creates an FAQ object from the given FAQ data.
  *
- * @param {Object} faq - The FAQ object containing custom attributes.
- * @param {Object} faq.custom - The custom attributes of the FAQ.
- * @param {string} faq.custom.question - The question of the FAQ.
- * @param {string} faq.custom.answer - The answer of the FAQ.
+ * @param {dw.object.CustomObject} faq - The FAQ object containing custom attributes.
  * @returns {Object} Returns a formatted FAQ object with question, answer, text, and an internal ID.
  */
 function createFaqObject(faq) {
@@ -68,10 +54,10 @@ function sendFaqsToBrainCommerce(faqsRequest) {
  * Processes FAQs for export to Brain Commerce, filtering based on modification time and sending them in chunks.
  *
  * @param {boolean} isDelta - Indicates whether to export only modified FAQs (delta export).
- * @param {number} totalHours - The time threshold (in hours) for filtering FAQs based on last modification.
+ * @param {number} fromThresholdDate - The time threshold (in hours) for filtering FAQs based on last modification.
  * @returns {boolean} Returns true if all FAQs were successfully exported, otherwise false.
  */
-function processFaqs(isDelta, totalHours) {
+function processFaqs(isDelta, fromThresholdDate) {
     var faqsRequest = [];
     var faqsToBeExported = [];
     var faqCustomObjectID = Site.getCurrent().getCustomPreferenceValue('brainCommerceFAQCustomObjectID');
@@ -84,9 +70,9 @@ function processFaqs(isDelta, totalHours) {
         if (faq && isDelta) {
             var customObjectLastModified = new Date(faq.getLastModified());
             var brainCommerceFaqLastExport = (braincommerceLastFaqExport && new Date(braincommerceLastFaqExport)) || null;
-            var faqUpdatedBeforeThreshold = (totalHours && customObjectLastModified >= totalHours) || false;
+            var faqUpdatedBeforeThreshold = (fromThresholdDate && customObjectLastModified >= fromThresholdDate) || false;
             var faqUpdatedBeforeLastExport = brainCommerceFaqLastExport && customObjectLastModified >= brainCommerceFaqLastExport;
-            var isFaqEligibletoExport = totalHours ? faqUpdatedBeforeThreshold : faqUpdatedBeforeLastExport;
+            var isFaqEligibletoExport = fromThresholdDate ? faqUpdatedBeforeThreshold : faqUpdatedBeforeLastExport;
 
             // Do not send the faq if it was updated before threshold or not updated after last export
             if (!isFaqEligibletoExport) {
@@ -134,15 +120,22 @@ function processFaqs(isDelta, totalHours) {
 function fullFaqExport() {
     Logger.info('***** Full Faq Export Job Started *****');
 
+    var status;
     var faqsProcessedSuccessfully = 0;
 
     try {
         var result = processFaqs(false, null);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
     } catch (error) {
-        return new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR' + error.message);
+        status = new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR' + error.message);
     }
-    return new Status(Status.OK, 'FINISHED', 'Full Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
+
+    status = new Status(Status.OK, 'FINISHED', 'Full Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
+
+    if (faqsProcessedSuccessfully > 0) {
+        brainCommerceConfigsHelpers.updateFAQExportTimestampInBrainCommerceCOConfigs();
+    }
+    return status;
 }
 
 /**
@@ -155,24 +148,25 @@ function fullFaqExport() {
 function deltaFaqExport(parameters) {
     Logger.info('***** Delta Faq Export Job Started *****');
 
+    var hours = parameters.faqDataPriorToHours;
+    var fromThresholdDate = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
+
+    var status;
     var faqsProcessedSuccessfully = 0;
 
     try {
-        var hours = parameters.faqDataPriorToHours;
-        var totalHours = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
-        var result = processFaqs(true, totalHours);
+        var result = processFaqs(true, fromThresholdDate);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
-        if (faqsProcessedSuccessfully > 0) {
-            Transaction.wrap(function () {
-                var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
-                customObject.custom.faqLastExport = new Date();
-            });
-        }
     } catch (error) {
-        return new Status(Status.ERROR, 'FINISHED', 'Delta Faq Export Job Finished with ERROR ' + error.message);
+        status = new Status(Status.ERROR, 'FINISHED', 'Delta Faq Export Job Finished with ERROR ' + error.message);
     }
 
-    return new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
+    status = new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
+
+    if (faqsProcessedSuccessfully > 0) {
+        brainCommerceConfigsHelpers.updateFAQExportTimestampInBrainCommerceCOConfigs();
+    }
+    return status;
 }
 
 module.exports = { fullFaqExport: fullFaqExport, deltaFaqExport: deltaFaqExport };

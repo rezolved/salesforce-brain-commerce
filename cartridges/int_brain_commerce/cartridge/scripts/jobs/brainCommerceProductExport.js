@@ -12,23 +12,12 @@ var brainService = require('*/cartridge/scripts/services/brainCommerceService');
 var constants = require('*/cartridge/scripts/constants');
 var collections = require('*/cartridge/scripts/util/collections');
 var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
+var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
 
 var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 var defaultCurrency = Site.current.getDefaultCurrency();
-var CustomObjectMgr = require('dw/object/CustomObjectMgr');
+var braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceLastExportTime();
 
-/**
- * Retrieves the last export timestamp from the 'brainCommerce' custom object.
-*
-* @returns {string|null} The last export timestamp if available, otherwise null.
-*/
-function getCustomObject() {
-    var brainCommerceProductCustomObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce');
-    var braincommerceProductLastExport = brainCommerceProductCustomObject.custom.productLastExport;
-    return braincommerceProductLastExport;
-}
-
-var braincommerceProductLastExport = getCustomObject();
 /**
  * Generates a list of category paths from an array of categories.
  *
@@ -110,6 +99,7 @@ function createProductObject(product, listPriceBookId) {
 
 /**
  * Creates a string with product availability list price and sale price joined by a pipe.
+ *
  * @param {dw.catalog.Product} product Product Object
  * @param {string} listPriceBookId list price book ID
  * @returns {string} availabilityAndPriceStatus availability and price status
@@ -138,6 +128,7 @@ function getProductAvailabilityAndPriceStatus(product, listPriceBookId) {
 
 /**
  * Sends the products to Brain Commerce
+ *
  * @param {Array} productsRequest product request object
  * @param {Array} productsToBeExported product to be exported to Brain Commerce
  * @param {string} listPriceBookId list price book ID
@@ -167,6 +158,7 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
 
 /**
  * Checks if the product is eligible for delta export
+ *
  * @param {dw.catalog.Product} product Product Object
  * @param {Date} fromThresholdDate Threshold for modified products
  * @param {string} listPriceBookId list price book ID
@@ -259,42 +251,53 @@ function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBook
  * @returns {string} The ID of the price book that matches the default currency, or null if not found.
  */
 function getPriceBookId() {
-    var priceBookId;
+    var priceBookId = '';
+
+    // Get the list price book ID
     var priceBooks = PriceBookMgr.getSitePriceBooks();
     collections.forEach(priceBooks, function (priceBook) {
         if (priceBook.currencyCode === defaultCurrency) {
             priceBookId = (priceBook.parentPriceBook || priceBook).ID;
         }
     });
+
     return priceBookId;
 }
 
 /**
  * Exports all site products by processing them through the `processProducts` function.
+ *
  * @param {Object} parameters - The parameters object containing filtering options.
  * @returns {dw/system/Status} returns job status
  */
 function fullProductExport(parameters) {
     Logger.info('***** Full Product Export Job Started *****');
 
-    var listPriceBookId = parameters.listPriceBookId;
-    if (!listPriceBookId) {
-        listPriceBookId = getPriceBookId();
-    }
+    // Get the list price book ID
+    var listPriceBookId = parameters.listPriceBookId || getPriceBookId();
 
+    // Initalize variables for status and products processed successfully
+    var status;
     var productsProcessedSuccessfully = 0;
 
     try {
+        // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
         if (productAttributes) {
             var result = processProducts(allProducts, false, null, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
     } catch (error) {
-        return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + error.message);
+        status = new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + error.message);
     }
 
-    return new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
+    status = new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
+
+    // Update the last export timestamp if products were processed successfully
+    if (productsProcessedSuccessfully > 0) {
+        brainCommerceConfigsHelpers.updateProductExportTimestampInBrainCommerceCOConfigs();
+    }
+    return status;
 }
 
 /**
@@ -307,32 +310,33 @@ function fullProductExport(parameters) {
 function deltaProductExport(parameters) {
     Logger.info('***** Delta Product Export Job Started *****');
 
-    var listPriceBookId = parameters.listPriceBookId;
-    if (!listPriceBookId) {
-        listPriceBookId = getPriceBookId();
-    }
+    // Get the list price book ID
+    var listPriceBookId = parameters.listPriceBookId || getPriceBookId();
+    var hours = parameters.dataPriorToHours;
+    var fromThresholdDate = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
 
+    // Initalize variables for status and products processed successfully
+    var status;
     var productsProcessedSuccessfully = 0;
 
     try {
+        // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
-        var hours = parameters.dataPriorToHours;
-        var fromThresholdDate = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
         if (productAttributes) {
             var result = processProducts(allProducts, true, fromThresholdDate, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
-        if (productsProcessedSuccessfully > 0) {
-            Transaction.wrap(function () {
-                var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
-                customObject.custom.productLastExport = new Date();
-            });
-        }
     } catch (error) {
-        return new Status(Status.ERROR, 'FINISHED', 'Delta Product Export Job Finished with ERROR ' + error.message);
+        status = new Status(Status.ERROR, 'FINISHED', 'Delta Product Export Job Finished with ERROR ' + error.message);
     }
 
-    return new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
+    status = new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
+
+    // Update the last export timestamp if products were processed successfully
+    if (productsProcessedSuccessfully > 0) {
+        brainCommerceConfigsHelpers.updateProductExportTimestampInBrainCommerceCOConfigs();
+    }
+    return status;
 }
 
 module.exports = { fullProductExport: fullProductExport, deltaProductExport: deltaProductExport };
