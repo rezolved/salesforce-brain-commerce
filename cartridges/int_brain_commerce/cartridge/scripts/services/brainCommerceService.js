@@ -2,10 +2,11 @@
 
 var LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
 var Site = require('dw/system/Site');
+var serviceEndPointUrl = Site.current.getCustomPreferenceValue('brainCommerceServiceEndPoint');
 
 var service = LocalServiceRegistry.createService('int_braincommerce.http.service', {
     createRequest: function (svc, params) {
-        svc.setURL(svc.getConfiguration().getCredential().getURL() + params.endPoint);
+        svc.setURL(serviceEndPointUrl + params.endPoint);
         svc.setRequestMethod('POST');
         svc.addHeader('Content-Type', 'application/json');
         svc.addHeader('X-API-Key', Site.current.getCustomPreferenceValue('brainCommerceApiKey'));

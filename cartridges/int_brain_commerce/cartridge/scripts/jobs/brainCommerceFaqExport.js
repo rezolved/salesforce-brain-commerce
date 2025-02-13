@@ -134,11 +134,18 @@ function processFaqs(isDelta, totalHours) {
 function fullFaqExport() {
     Logger.info('***** Full Faq Export Job Started *****');
 
+    var jobStartTime = new Date();
     var faqsProcessedSuccessfully = 0;
 
     try {
         var result = processFaqs(false, null);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
+        if (faqsProcessedSuccessfully > 0) {
+            Transaction.wrap(function () {
+                var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
+                customObject.custom.faqLastExport = jobStartTime;
+            });
+        }
     } catch (error) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR' + error.message);
     }
@@ -155,6 +162,7 @@ function fullFaqExport() {
 function deltaFaqExport(parameters) {
     Logger.info('***** Delta Faq Export Job Started *****');
 
+    var jobStartTime = new Date();
     var faqsProcessedSuccessfully = 0;
 
     try {
@@ -165,7 +173,7 @@ function deltaFaqExport(parameters) {
         if (faqsProcessedSuccessfully > 0) {
             Transaction.wrap(function () {
                 var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
-                customObject.custom.faqLastExport = new Date();
+                customObject.custom.faqLastExport = jobStartTime;
             });
         }
     } catch (error) {

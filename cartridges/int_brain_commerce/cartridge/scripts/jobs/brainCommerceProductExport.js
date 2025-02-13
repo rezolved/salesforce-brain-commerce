@@ -16,6 +16,22 @@ var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
 var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 var defaultCurrency = Site.current.getDefaultCurrency();
 var CustomObjectMgr = require('dw/object/CustomObjectMgr');
+var currentSite = Site.getCurrent().getID();
+
+/**
+ * Tries to parse a given string as a JSON object. If the parsing is successful, the parsed object is returned.
+ * If the parsing fails, null is returned.
+ * @param {string} stringData - The string to parse.
+ * @returns {Object|null} The parsed object or null if the parsing failed.
+ */
+function parseContent(stringData) {
+    try {
+        const parsedObject = JSON.parse(stringData);
+        return parsedObject !== null ? parsedObject : {}; // Handle null case explicitly
+    } catch (error) {
+        return {};
+    }
+}
 
 /**
  * Retrieves the last export timestamp from the 'brainCommerce' custom object.
@@ -151,12 +167,17 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
 
     // Update brainCommerceLastExport product custom attribute
     if (response && response.status === 'OK') {
-        Transaction.begin();
         productsToBeExported.forEach(function (product) {
             var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-            product.custom.brainCommerceAvailabilityAndPriceStatus = productAvailabilityAndPriceStatus;
+            if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
+                var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerce;
+                var parsedObject = parseContent(productData);
+                parsedObject[currentSite] = productAvailabilityAndPriceStatus;
+                Transaction.wrap(function () {
+                    product.availabilityModel.inventoryRecord.custom.brainCommerce = JSON.stringify(parsedObject);
+                });
+            }
         });
-        Transaction.commit();
     } else {
         Logger.error('Error in Brain commerce service: {0}', response.msg);
         return false;
@@ -185,10 +206,19 @@ function isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBo
     var isProductUpdated = (fromThresholdDate ? isProductUpdatedAfterThreshold : isProductUpdatedAfterLastExport);
 
     // Check if the product availability or price status has changed
-    var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-    var availabilityOrPriceStatusChanged = productAvailabilityAndPriceStatus && product.custom.brainCommerceAvailabilityAndPriceStatus !== productAvailabilityAndPriceStatus;
+    if (!isProductUpdated) {
+        if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
+            var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
+            var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerce;
+            var parsedObject = parseContent(productData);
+            var storedData = Object.prototype.hasOwnProperty.call(parsedObject, currentSite) ? parsedObject[currentSite] : '';
+            isProductUpdated = storedData !== productAvailabilityAndPriceStatus;
+        } else if (product && !product.isMaster()) {
+            Logger.info('Skipping product from delta {0} as the product inventory record is missing!', product.ID);
+        }
+    }
 
-    return isProductUpdated || availabilityOrPriceStatusChanged;
+    return isProductUpdated;
 }
 
 /**
@@ -210,7 +240,7 @@ function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBook
         var product = products.next();
 
         // Only process products that are type of product, master or variant
-        var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup());
+        var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup()) && product.isOnline();
         if (eligibleProduct) {
             if (isDeltaFeed) {
                 var isProductEligibletoExport = isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBookId);
@@ -277,6 +307,7 @@ function getPriceBookId() {
 function fullProductExport(parameters) {
     Logger.info('***** Full Product Export Job Started *****');
 
+    var jobStartTime = new Date();
     var listPriceBookId = parameters.listPriceBookId;
     if (!listPriceBookId) {
         listPriceBookId = getPriceBookId();
@@ -289,6 +320,12 @@ function fullProductExport(parameters) {
         if (productAttributes) {
             var result = processProducts(allProducts, false, null, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
+        }
+        if (productsProcessedSuccessfully > 0) {
+            Transaction.wrap(function () {
+                var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
+                customObject.custom.productLastExport = jobStartTime;
+            });
         }
     } catch (error) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + error.message);
@@ -307,6 +344,7 @@ function fullProductExport(parameters) {
 function deltaProductExport(parameters) {
     Logger.info('***** Delta Product Export Job Started *****');
 
+    var jobStartTime = new Date();
     var listPriceBookId = parameters.listPriceBookId;
     if (!listPriceBookId) {
         listPriceBookId = getPriceBookId();
@@ -325,7 +363,7 @@ function deltaProductExport(parameters) {
         if (productsProcessedSuccessfully > 0) {
             Transaction.wrap(function () {
                 var customObject = CustomObjectMgr.getCustomObject('brainCommerce', 'brainCommerce') || CustomObjectMgr.createCustomObject('brainCommerce', 'brainCommerce');
-                customObject.custom.productLastExport = new Date();
+                customObject.custom.productLastExport = jobStartTime;
             });
         }
     } catch (error) {
