@@ -19,8 +19,8 @@ function getBrainCommerceSDKHeadData() {
  * @returns {Object} - The Brain Commerce SDK Config data object
  */
 function getBrainCommerceSDKConfigData() {
-    var baseAPIURL = Site.getCurrent().getCustomPreferenceValue('frontendAPIUrl') || '';
-    var sdkAPIKey = Site.getCurrent().getCustomPreferenceValue('frontendAPIKey') || '';
+    var baseAPIURL = Site.getCurrent().getCustomPreferenceValue('brainCommerceFrontendAPIUrl') || '';
+    var sdkAPIKey = Site.getCurrent().getCustomPreferenceValue('brainCommerceFrontendAPIKey') || '';
 
     return {
         baseAPIURL: baseAPIURL,

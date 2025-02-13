@@ -38,21 +38,21 @@
 
     <type-extension type-id="SitePreferences">
         <custom-attribute-definitions>
-            <attribute-definition attribute-id="isBackendEnabled">
+            <attribute-definition attribute-id="isBrainCommerceBackendEnabled">
                 <display-name xml:lang="x-default">Is Ingestion Enabled</display-name>
                 <type>boolean</type>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <default-value>false</default-value>
             </attribute-definition>
-            <attribute-definition attribute-id="ingestorAPIKey">
+            <attribute-definition attribute-id="brainCommerceIngestorAPIKey">
                 <display-name xml:lang="x-default">Ingestor API Key</display-name>
                 <type>string</type>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <min-length>0</min-length>
             </attribute-definition>
-            <attribute-definition attribute-id="ingestorAPIUrl">
+            <attribute-definition attribute-id="brainCommerceIngestorAPIUrl">
                 <display-name xml:lang="x-default">Ingestor API URL</display-name>
                 <type>string</type>
                 <mandatory-flag>false</mandatory-flag>
@@ -89,21 +89,21 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
-            <attribute-definition attribute-id="isFrontendEnabled">
+            <attribute-definition attribute-id="isBrainCommerceFrontendEnabled">
                 <display-name xml:lang="x-default">Is Conversation UI Enabled</display-name>
                 <type>boolean</type>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <default-value>false</default-value>
             </attribute-definition>
-            <attribute-definition attribute-id="frontendAPIKey">
+            <attribute-definition attribute-id="brainCommerceFrontendAPIKey">
                 <display-name xml:lang="x-default">Frontend API Key</display-name>
                 <type>string</type>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <min-length>0</min-length>
             </attribute-definition>
-            <attribute-definition attribute-id="frontendAPIUrl">
+            <attribute-definition attribute-id="brainCommerceFrontendAPIUrl">
                 <display-name xml:lang="x-default">Frontend API URL</display-name>
                 <type>string</type>
                 <mandatory-flag>false</mandatory-flag>
@@ -123,16 +123,16 @@
         <group-definitions>
             <attribute-group group-id="BrainCommerceConfig">
                 <display-name xml:lang="x-default">Brain Commerce Configurations</display-name>
-                <attribute attribute-id="isBackendEnabled"/>
-                <attribute attribute-id="ingestorAPIKey"/>
-                <attribute attribute-id="ingestorAPIUrl"/>
+                <attribute attribute-id="isBrainCommerceBackendEnabled"/>
+                <attribute attribute-id="brainCommerceIngestorAPIKey"/>
+                <attribute attribute-id="brainCommerceIngestorAPIUrl"/>
                 <attribute attribute-id="brainCommerceFAQCustomObjectID"/>
                 <attribute attribute-id="brainCommerceDeltaExportBufferTime"/>
                 <attribute attribute-id="brainCommerceDeltaExportBufferTimeFAQ"/>
                 <attribute attribute-id="brainCommerceProductAttributeMapping"/>
-                <attribute attribute-id="isFrontendEnabled"/>
-                <attribute attribute-id="frontendAPIKey"/>
-                <attribute attribute-id="frontendAPIUrl"/>
+                <attribute attribute-id="isBrainCommerceFrontendEnabled"/>
+                <attribute attribute-id="brainCommerceFrontendAPIKey"/>
+                <attribute attribute-id="brainCommerceFrontendAPIUrl"/>
                 <attribute attribute-id="brainCommerceSDKURL"/>
             </attribute-group>
         </group-definitions>

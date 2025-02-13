@@ -6,7 +6,7 @@ var Site = require('dw/system/Site');
  * HTML Head hook to inject the Brain Commerce SDK script
  */
 function htmlHead() {
-    var isFrontendEnabled = Site.getCurrent().getCustomPreferenceValue('isFrontendEnabled');
+    var isFrontendEnabled = Site.getCurrent().getCustomPreferenceValue('isBrainCommerceFrontendEnabled');
 
     if (isFrontendEnabled) {
         var ISML = require('dw/template/ISML');
