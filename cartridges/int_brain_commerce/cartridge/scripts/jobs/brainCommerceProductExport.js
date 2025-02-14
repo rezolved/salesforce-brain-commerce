@@ -39,6 +39,16 @@ function getProductCategories(categories) {
 }
 
 /**
+ * Returns Product Variation Attribute based on the provided attribute if exists.
+ * @param {dw.catalog.Product} product - Product Object
+ * @param {string} attribute - Attribute to be fetched
+ * @returns {dw.catalog.ProductVariationAttribute | boolean | null} - Product Variation Attribute or false or null
+ */
+function getVariationAttribute(product, attribute) {
+    return product && product.isVariant() && product.variationModel && product.variationModel.getProductVariationAttribute(attribute);
+}
+
+/**
  * Creates a product object with mapped attributes from a given product.
  *
  * @param {Object} product - The product object from which attributes are extracted.
@@ -65,8 +75,14 @@ function createProductObject(product, listPriceBookId) {
     // Fetch Custom attribute values
     customAttributes.forEach(function (attribute) {
         if (attribute && attribute.brainCommerceAttr && attribute.sfccAttr) {
-            var customAttributeValue = brainCommerceUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
-            productData[attribute.brainCommerceAttr] = !empty(customAttributeValue) ? customAttributeValue : '';
+            var variationAttribute = getVariationAttribute(product, attribute.sfccAttr);
+            if (variationAttribute) {
+                var varationAttributeValue = product.variationModel && product.variationModel.getSelectedValue(variationAttribute);
+                productData[attribute.brainCommerceAttr] = varationAttributeValue.displayValue || varationAttributeValue.value || '';
+            } else {
+                var customAttributeValue = brainCommerceUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
+                productData[attribute.brainCommerceAttr] = !empty(customAttributeValue) ? customAttributeValue : '';
+            }
         }
     });
 
@@ -253,6 +269,7 @@ function fullProductExport(parameters) {
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
     } catch (error) {
+        Logger.error('Error in Full Product Export Job: {0}', error.message);
         status = new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + error.message);
     }
 
