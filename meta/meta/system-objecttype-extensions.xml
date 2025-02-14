@@ -1,41 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata xmlns="http://www.demandware.com/xml/impex/metadata/2006-10-31">
 
-    <type-extension type-id="Product">
-        <custom-attribute-definitions>
-            <attribute-definition attribute-id="brainCommerceAvailabilityAndPriceStatus">
-                <display-name xml:lang="x-default">Brain Commerce Availability And Price Status</display-name>
-                <type>string</type>
-                <localizable-flag>false</localizable-flag>
-                <site-specific-flag>false</site-specific-flag>
-                <mandatory-flag>false</mandatory-flag>
-                <visible-flag>false</visible-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <order-required-flag>false</order-required-flag>
-                <externally-defined-flag>false</externally-defined-flag>
-                <min-length>0</min-length>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceLastExport">
-                <display-name xml:lang="x-default">Brain Commerce Last Export</display-name>
-                <type>datetime</type>
-                <localizable-flag>false</localizable-flag>
-                <site-specific-flag>true</site-specific-flag>
-                <mandatory-flag>false</mandatory-flag>
-                <visible-flag>false</visible-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <order-required-flag>false</order-required-flag>
-                <externally-defined-flag>false</externally-defined-flag>
-            </attribute-definition>
-        </custom-attribute-definitions>
-        <group-definitions>
-            <attribute-group group-id="brainCommerceAttributes">
-                <display-name xml:lang="x-default">Brain Commerce Attributes</display-name>
-                <attribute attribute-id="brainCommerceLastExport"/>
-                <attribute attribute-id="brainCommerceAvailabilityAndPriceStatus"/>
-            </attribute-group>
-        </group-definitions>
-    </type-extension>
-
     <type-extension type-id="SitePreferences">
         <custom-attribute-definitions>
             <attribute-definition attribute-id="brainCommerceApiKey">
@@ -51,22 +16,6 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <min-length>0</min-length>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceDeltaExportBufferTime">
-                <display-name xml:lang="x-default">Buffer Time For Product Delta Export (In Seconds)</display-name>
-                <description xml:lang="x-default">Buffer time to compare product last modified time and brain commerce last export time.</description>
-                <type>int</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <default-value>60</default-value>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceDeltaExportBufferTimeFAQ">
-                <display-name xml:lang="x-default">Buffer Time For FAQ Delta Export (In Seconds)</display-name>
-                <description xml:lang="x-default">Buffer time to compare FAQ last modified time and brain commerce last export time.</description>
-                <type>int</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <default-value>60</default-value>
             </attribute-definition>
             <attribute-definition attribute-id="brainCommerceFAQCustomObjectID">
                 <display-name xml:lang="x-default">Brain Commerce FAQ Custom Object ID</display-name>
@@ -102,6 +51,13 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceServiceEndPoint">
+                <display-name xml:lang="x-default">Brain Commerce Service End Point</display-name>
+                <type>string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
         </custom-attribute-definitions>
         <group-definitions>
             <attribute-group group-id="BrainCommerceConfig">
@@ -113,8 +69,7 @@
                 <attribute attribute-id="brainCommerceSDKURL"/>
                 <attribute attribute-id="brainCommerceFAQCustomObjectID"/>
                 <attribute attribute-id="brainCommerceProductAttributeMapping"/>
-                <attribute attribute-id="brainCommerceDeltaExportBufferTime"/>
-                <attribute attribute-id="brainCommerceDeltaExportBufferTimeFAQ"/>
+                <attribute attribute-id="brainCommerceServiceEndPoint"/>
             </attribute-group>
         </group-definitions>
     </type-extension>

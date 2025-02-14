@@ -107,7 +107,7 @@
     "last 2 versions",
     "ie >= 10"
   ],
-  "packageName": "app_storefront_base",
+  "packageName": "int_brain_commerce",
   "babel": {
     "presets": [
       "env"
