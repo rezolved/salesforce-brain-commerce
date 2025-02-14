@@ -5,7 +5,6 @@ var Logger = require('dw/system/Logger');
 var Status = require('dw/system/Status');
 var URLUtils = require('dw/web/URLUtils');
 var ProductMgr = require('dw/catalog/ProductMgr');
-var Transaction = require('dw/system/Transaction');
 var PriceBookMgr = require('dw/catalog/PriceBookMgr');
 
 var brainService = require('*/cartridge/scripts/services/brainCommerceService');
@@ -14,24 +13,8 @@ var collections = require('*/cartridge/scripts/util/collections');
 var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
 var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 var defaultCurrency = Site.current.getDefaultCurrency();
-var currentSite = Site.getCurrent().getID();
 var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
 var braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
-
-/**
- * Tries to parse a given string as a JSON object. If the parsing is successful, the parsed object is returned.
- * If the parsing fails, null is returned.
- * @param {string} stringData - The string to parse.
- * @returns {Object|null} The parsed object or null if the parsing failed.
- */
-function parseContent(stringData) {
-    try {
-        const parsedObject = JSON.parse(stringData);
-        return parsedObject !== null ? parsedObject : {}; // Handle null case explicitly
-    } catch (error) {
-        return {};
-    }
-}
 
 /**
  * Generates a list of category paths from an array of categories.
@@ -113,34 +96,6 @@ function createProductObject(product, listPriceBookId) {
 }
 
 /**
- * Creates a string with product availability list price and sale price joined by a pipe.
- * @param {dw.catalog.Product} product Product Object
- * @param {string} listPriceBookId list price book ID
- * @returns {string} availabilityAndPriceStatus availability and price status
- */
-function getProductAvailabilityAndPriceStatus(product, listPriceBookId) {
-    if (!product) {
-        return '';
-    }
-
-    var availabilityAndPriceStatus = [];
-
-    // Get product availability
-    var availability = (product.availabilityModel && product.availabilityModel.availabilityStatus) || '';
-    availabilityAndPriceStatus.push(availability);
-
-    // Get product list price
-    var listPrice = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
-    availabilityAndPriceStatus.push(listPrice);
-
-    // Get product sale price
-    var salePrice = (product.priceModel && product.priceModel.minPrice.value) || 0;
-    availabilityAndPriceStatus.push(salePrice);
-
-    return availabilityAndPriceStatus.join('|');
-}
-
-/**
  * Sends the products to Brain Commerce
  * @param {Array} productsRequest product request object
  * @param {Array} productsToBeExported product to be exported to Brain Commerce
@@ -156,15 +111,7 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
     // Update brainCommerceLastExport product custom attribute
     if (response && response.status === 'OK') {
         productsToBeExported.forEach(function (product) {
-            var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-            if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
-                var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerce;
-                var parsedObject = parseContent(productData);
-                parsedObject[currentSite] = productAvailabilityAndPriceStatus;
-                Transaction.wrap(function () {
-                    product.availabilityModel.inventoryRecord.custom.brainCommerce = JSON.stringify(parsedObject);
-                });
-            }
+            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId);
         });
     } else {
         Logger.error('Error in Brain commerce service: {0}', response.msg);
@@ -195,15 +142,7 @@ function isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBo
 
     // Check if the product availability or price status has changed
     if (!isProductUpdated) {
-        if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
-            var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-            var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerce;
-            var parsedObject = parseContent(productData);
-            var storedData = Object.prototype.hasOwnProperty.call(parsedObject, currentSite) ? parsedObject[currentSite] : '';
-            isProductUpdated = storedData !== productAvailabilityAndPriceStatus;
-        } else if (product && !product.isMaster()) {
-            Logger.info('Skipping product from delta {0} as the product inventory record is missing!', product.ID);
-        }
+        isProductUpdated = brainCommerceConfigsHelpers.compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId);
     }
 
     return isProductUpdated;
