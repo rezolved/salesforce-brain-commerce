@@ -11,10 +11,11 @@ var brainService = require('*/cartridge/scripts/services/brainCommerceService');
 var constants = require('*/cartridge/scripts/constants');
 var collections = require('*/cartridge/scripts/util/collections');
 var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
-var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
-var defaultCurrency = Site.current.getDefaultCurrency();
 var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
+
+var defaultCurrency = Site.current.getDefaultCurrency();
 var braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
+var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 
 /**
  * Generates a list of category paths from an array of categories.
@@ -74,6 +75,49 @@ function getAttributeValue(product, attribute, isCustomAttribute) {
 }
 
 /**
+ * Gets the product prices for the given product and price book ID.
+ * @param {dw.catalog.Product} product - Product Object
+ * @param {string} priceBookId - Price Book ID
+ * @returns {Object} - List Price and Sale Price
+ */
+function getProductPrices(product, priceBookId) {
+    var priceObj = {
+        listPrice: 0,
+        salePrice: 0,
+        currency: defaultCurrency
+    };
+
+    if (!product) {
+        return priceObj;
+    }
+
+    // Get the list price for the product
+    if (product.isMaster()) {
+        // Fetch the minimum list price from the product variants
+        collections.forEach(product.variants, function (variant) {
+            let listPrice = variant.priceModel.getPriceBookPrice(priceBookId).value || 0;
+            if (priceObj.listPrice === 0 || priceObj.listPrice > listPrice) {
+                priceObj.listPrice = listPrice;
+            }
+        });
+    } else {
+        var listPrice = product.priceModel.getPriceBookPrice(priceBookId);
+        priceObj.listPrice = (listPrice && listPrice.value) || 0;
+
+        // Update currency if the product has a different currency for the list price
+        if (listPrice && listPrice.currencyCode !== defaultCurrency) {
+            priceObj.currency = listPrice.currencyCode;
+        }
+    }
+
+    // Get the sale price for the product
+    var salePrice = (product.priceModel && product.priceModel.minPrice.value) || 0;
+    priceObj.salePrice = priceObj.listPrice === salePrice ? 0 : salePrice;
+
+    return priceObj;
+}
+
+/**
  * Creates a product object with mapped attributes from a given product.
  *
  * @param {Object} product - The product object from which attributes are extracted.
@@ -109,20 +153,37 @@ function createProductObject(product, listPriceBookId) {
      * 1. Category - comma separated list of category paths
      * 2. Price - List Price
      * 3. Sale Price - Sale Price
-     * 4. Availability - In Stock or Out of Stock
-     * 5. Item Group ID - Master product ID for variants
-     * 6. Product Status - Active or Inactive
-     * 7. Link - Product URL
-     * 8. Image Link - Product Image URL
+     * 4. Currency - Currency Code
+     * 5. Availability - In Stock or Out of Stock
+     * 6. Item Group ID - Master product ID for variants
+     * 7. Product Status - Active or Inactive
+     * 8. Link - Product URL
+     * 9. Image Link - Product Image URL
      */
+
+    // Fetch product category paths
     productData.product_category = getProductCategories(categories);
-    productData.price = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
-    productData.sale_price = product.priceModel.minPrice.value || 0;
+
+    // Fetch product prices and currency
+    var productPrices = getProductPrices(product, listPriceBookId);
+    productData.price = productPrices.listPrice || 0;
+    productData.sale_price = productPrices.salePrice || 0;
+    productData.currency = productPrices.currency || defaultCurrency;
+
+    // Fetch product availability status 'in_stock' or 'out_of_stock'
     productData.availability = productData.availability === 'IN_STOCK' ? 'in_stock' : 'out_of_stock';
+
+    // Fetch product parent ID for variants
     productData.item_group_id = product.variant ? product.masterProduct.ID : '';
+
+    // Fetch product status 'true' or 'false'
     productData.product_status = productData.product_status === true ? 'true' : 'false';
+
+    // Fetch product URL
     var pid = product.variant && !product.searchable ? product.masterProduct.ID : product.ID;
     productData.link = product ? URLUtils.abs('Product-Show', 'pid', pid).toString() : '';
+
+    // Fetch product image URL
     var productImage = product && product.getImage ? product.getImage('large') : '';
     productData.image_link = productImage ? productImage.absURL.toString() : '';
 
