@@ -49,6 +49,31 @@ function getVariationAttribute(product, attribute) {
 }
 
 /**
+ * Gets the attribute value from the product object for the given attribute.
+ * @param {dw.catalog.Product} product - The product object from which attributes are extracted.
+ * @param {Object} attribute - The attribute object containing the mapping.
+ * @param {boolean} isCustomAttribute - Whether the attribute is a custom attribute.
+ * @returns {string} - The attribute value.
+ */
+function getAttributeValue(product, attribute, isCustomAttribute) {
+    var attributeValue = '';
+
+    // Check if the attribute is a system attribute
+    var variationAttribute = getVariationAttribute(product, attribute.sfccAttr);
+    if (variationAttribute) {
+        var varationAttributeValue = product.variationModel && product.variationModel.getSelectedValue(variationAttribute);
+        attributeValue = varationAttributeValue.displayValue || varationAttributeValue.value || '';
+    } else if (isCustomAttribute) { // Check if the attribute is a custom attribute
+        var customAttributeValue = brainCommerceUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
+        attributeValue = !empty(customAttributeValue) ? customAttributeValue : '';
+    } else { // If the attribute is a system attribute
+        attributeValue = brainCommerceUtils.safeGetProp(product, attribute.sfccAttr, attribute.defaultValue) || '';
+    }
+
+    return attributeValue;
+}
+
+/**
  * Creates a product object with mapped attributes from a given product.
  *
  * @param {Object} product - The product object from which attributes are extracted.
@@ -68,21 +93,14 @@ function createProductObject(product, listPriceBookId) {
     // Fetch system attribute values
     systemAttributes.forEach(function (attribute) {
         if (attribute && attribute.brainCommerceAttr && attribute.sfccAttr) {
-            productData[attribute.brainCommerceAttr] = brainCommerceUtils.safeGetProp(product, attribute.sfccAttr, '') || '';
+            productData[attribute.brainCommerceAttr] = getAttributeValue(product, attribute, false);
         }
     });
 
     // Fetch Custom attribute values
     customAttributes.forEach(function (attribute) {
         if (attribute && attribute.brainCommerceAttr && attribute.sfccAttr) {
-            var variationAttribute = getVariationAttribute(product, attribute.sfccAttr);
-            if (variationAttribute) {
-                var varationAttributeValue = product.variationModel && product.variationModel.getSelectedValue(variationAttribute);
-                productData[attribute.brainCommerceAttr] = varationAttributeValue.displayValue || varationAttributeValue.value || '';
-            } else {
-                var customAttributeValue = brainCommerceUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
-                productData[attribute.brainCommerceAttr] = !empty(customAttributeValue) ? customAttributeValue : '';
-            }
+            productData[attribute.brainCommerceAttr] = getAttributeValue(product, attribute, true);
         }
     });
 
