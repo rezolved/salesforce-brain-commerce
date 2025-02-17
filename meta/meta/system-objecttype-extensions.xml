@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata xmlns="http://www.demandware.com/xml/impex/metadata/2006-10-31">
-<type-extension type-id="ProductInventoryRecord">
+    <type-extension type-id="ProductInventoryRecord">
         <custom-attribute-definitions>
             <attribute-definition attribute-id="brainCommerceLastExportedPriceAndInventory">
                 <display-name xml:lang="x-default">Brain Commerce</display-name>
