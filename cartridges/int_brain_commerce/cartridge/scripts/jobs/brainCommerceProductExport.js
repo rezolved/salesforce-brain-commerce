@@ -105,7 +105,7 @@ function getProductPrices(product, priceBookId) {
         priceObj.listPrice = (listPrice && listPrice.value) || 0;
 
         // Update currency if the product has a different currency for the list price
-        if (listPrice && listPrice.currencyCode !== defaultCurrency) {
+        if (listPrice && listPrice.currencyCode !== 'N/A' && listPrice && listPrice.currencyCode !== defaultCurrency) {
             priceObj.currency = listPrice.currencyCode;
         }
     }
