@@ -14,7 +14,7 @@ var brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
 var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
 
 var defaultCurrency = Site.current.getDefaultCurrency();
-var braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
+var braincommerceProductLastExport;
 var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
 
 /**
@@ -277,6 +277,13 @@ function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBook
                 productsToBeExported.push(product);
                 productsProcessedSuccessfully += 1;
 
+                // Add master product also in the list if the product is a variant and it's delta feed
+                if (isDeltaFeed && product.isVariant() && !isProductEligibleForDeltaExport(product.masterProduct, fromThresholdDate, listPriceBookId)) {
+                    productsRequest.push(createProductObject(product.masterProduct, listPriceBookId));
+                    productsToBeExported.push(product.masterProduct);
+                    productsProcessedSuccessfully += 1;
+                }
+
                 // Send products in chunk size and reset the list
                 if (productsRequest.length >= 100) {
                     if (!sendProductsToBrainCommerce(productsRequest, productsToBeExported, listPriceBookId)) {
@@ -339,6 +346,7 @@ function fullProductExport(parameters) {
     // Initalize variables for status and products processed successfully
     var status;
     var productsProcessedSuccessfully = 0;
+    braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
 
     try {
         // Query all site products
@@ -381,6 +389,7 @@ function deltaProductExport(parameters) {
     // Initalize variables for status and products processed successfully
     var status;
     var productsProcessedSuccessfully = 0;
+    braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
 
     try {
         // Query all site products

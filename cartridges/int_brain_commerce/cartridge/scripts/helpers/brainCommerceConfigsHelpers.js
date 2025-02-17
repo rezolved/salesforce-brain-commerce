@@ -129,7 +129,7 @@ function compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId) {
     var isProductUpdated = false;
     if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
         var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-        var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerce;
+        var productData = product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory;
         var parsedObject = parseContent(productData);
         var storedData = Object.prototype.hasOwnProperty.call(parsedObject, currentSite) ? parsedObject[currentSite] : '';
         isProductUpdated = storedData !== productAvailabilityAndPriceStatus;
@@ -149,11 +149,11 @@ function compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId) {
 function updateInventoryRecordOnSuccessResponse(product, listPriceBookId) {
     var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
     if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
-        var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerce;
+        var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory;
         var parsedObject = parseContent(productData);
         parsedObject[currentSite] = productAvailabilityAndPriceStatus;
         Transaction.wrap(function () {
-            product.availabilityModel.inventoryRecord.custom.brainCommerce = JSON.stringify(parsedObject);
+            product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory = JSON.stringify(parsedObject);
         });
     }
 }
