@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata xmlns="http://www.demandware.com/xml/impex/metadata/2006-10-31">
-    <custom-type type-id="brainCommerce">
-        <display-name xml:lang="x-default">Brain Commerce</display-name>
+    <custom-type type-id="brainCommerceConfigs">
+        <display-name xml:lang="x-default">Brain Commerce Configs</display-name>
         <staging-mode>no-staging</staging-mode>
         <storage-scope>site</storage-scope>
-        <key-definition attribute-id="lastExport">
-            <display-name xml:lang="x-default">Last Export</display-name>
+        <key-definition attribute-id="brainCommerceConfigKey">
+            <display-name xml:lang="x-default">Brain Commerce Config Key</display-name>
             <type>string</type>
             <min-length>0</min-length>
         </key-definition>
@@ -28,8 +28,9 @@
         <group-definitions>
             <attribute-group group-id="brainCommerceLastExport">
                 <display-name xml:lang="x-default">Brain Commerce Last Export</display-name>
-                <attribute attribute-id="productLastExport"/>
+                <attribute attribute-id="brainCommerceConfigKey"/>
                 <attribute attribute-id="faqLastExport"/>
+                <attribute attribute-id="productLastExport"/>
             </attribute-group>
         </group-definitions>
     </custom-type>
