@@ -1,0 +1,30 @@
+# This is a CI automation and on each pull request creation, it does automatic execution of lint.
+
+name: Run ESLint, Stylelint and Tests on Pull Requests
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    name: Run ESLint, Stylelint and Tests
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the repository
+      - uses: actions/checkout@v1
+      # Install Node.js
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - name: Cache project setup/init
+        uses: actions/cache@v3
+        id: node-modules-cache
+        with:
+          # npm cache files are stored in `~/.npm` on Linux/macOS
+          path: node_modules
+          key: project-setup-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install Dependencies
+        # if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm install
+      - name: Run Lint
+        run: npm run lint
