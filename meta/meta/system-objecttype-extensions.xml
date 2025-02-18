@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata xmlns="http://www.demandware.com/xml/impex/metadata/2006-10-31">
-<type-extension type-id="ProductInventoryRecord">
+    <type-extension type-id="ProductInventoryRecord">
         <custom-attribute-definitions>
             <attribute-definition attribute-id="brainCommerceLastExportedPriceAndInventory">
                 <display-name xml:lang="x-default">Brain Commerce</display-name>
@@ -18,20 +18,6 @@
     </type-extension>
     <type-extension type-id="SitePreferences">
         <custom-attribute-definitions>
-            <attribute-definition attribute-id="brainCommerceApiKey">
-                <display-name xml:lang="x-default">Brain Commerce Api Key</display-name>
-                <type>string</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <min-length>0</min-length>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceBaseAPIURL">
-                <display-name xml:lang="x-default">Brain Commerce Base API URL</display-name>
-                <type>string</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <min-length>0</min-length>
-            </attribute-definition>
             <attribute-definition attribute-id="brainCommerceFAQCustomObjectID">
                 <display-name xml:lang="x-default">Brain Commerce FAQ Custom Object ID</display-name>
                 <type>string</type>
@@ -40,18 +26,39 @@
                 <min-length>0</min-length>
                 <default-value>brainCommerceFAQ</default-value>
             </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceFrontendAPIKey">
+                <display-name xml:lang="x-default">Brain Commerce Frontend API Key</display-name>
+                <type>string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceFrontendAPIURL">
+                <display-name xml:lang="x-default">brain Commerce Frontend API URL</display-name>
+                <type>string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceIngestorAPIKey">
+                <display-name xml:lang="x-default">Brain Commerce Ingestor API Key</display-name>
+                <type>string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceIngestorAPIUrl">
+                <display-name xml:lang="x-default">brain Commerce Ingestor API Url</display-name>
+                <type>string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
             <attribute-definition attribute-id="brainCommerceProductAttributeMapping">
                 <display-name xml:lang="x-default">Product Attribute Mapping</display-name>
                 <type>text</type>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceSDKAPIKey">
-                <display-name xml:lang="x-default">brain Commerce SDK API Key</display-name>
-                <type>string</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <min-length>0</min-length>
             </attribute-definition>
             <attribute-definition attribute-id="brainCommerceSDKURL">
                 <display-name xml:lang="x-default">Brain Commerce SDK URL</display-name>
@@ -60,33 +67,25 @@
                 <externally-managed-flag>false</externally-managed-flag>
                 <min-length>0</min-length>
             </attribute-definition>
-            <attribute-definition attribute-id="isBrainCommerceSDKEnabled">
-                <display-name xml:lang="x-default">Brain Commerce SDK Enabled</display-name>
+            <attribute-definition attribute-id="isBrainCommerceFrontendEnabled">
+                <display-name xml:lang="x-default">Is Brain Commerce Frontend Enabled</display-name>
                 <type>boolean</type>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceServiceEndPoint">
-                <display-name xml:lang="x-default">Brain Commerce Service End Point</display-name>
-                <type>string</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <min-length>0</min-length>
             </attribute-definition>
         </custom-attribute-definitions>
         <group-definitions>
             <attribute-group group-id="BrainCommerceConfig">
                 <display-name xml:lang="x-default">Brain Commerce Configurations</display-name>
-                <attribute attribute-id="brainCommerceApiKey"/>
-                <attribute attribute-id="isBrainCommerceSDKEnabled"/>
-                <attribute attribute-id="brainCommerceBaseAPIURL"/>
-                <attribute attribute-id="brainCommerceSDKAPIKey"/>
                 <attribute attribute-id="brainCommerceSDKURL"/>
                 <attribute attribute-id="brainCommerceFAQCustomObjectID"/>
                 <attribute attribute-id="brainCommerceProductAttributeMapping"/>
-                <attribute attribute-id="brainCommerceServiceEndPoint"/>
+                <attribute attribute-id="brainCommerceFrontendAPIKey"/>
+                <attribute attribute-id="brainCommerceIngestorAPIKey"/>
+                <attribute attribute-id="brainCommerceIngestorAPIUrl"/>
+                <attribute attribute-id="brainCommerceFrontendAPIURL"/>
+                <attribute attribute-id="isBrainCommerceFrontendEnabled"/>
             </attribute-group>
         </group-definitions>
     </type-extension>
-
 </metadata>

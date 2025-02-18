@@ -130,10 +130,10 @@ function fullFaqExport() {
     try {
         var result = processFaqs(false, null);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
+        status = new Status(Status.OK, 'FINISHED', 'Full Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
     } catch (error) {
         status = new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR' + error.message);
     }
-    status = new Status(Status.OK, 'FINISHED', 'Full Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
 
     if (faqsProcessedSuccessfully > 0) {
         brainCommerceConfigsHelpers.updateFAQExportTimestampInBrainCommerceCOConfigs(jobStartTime);
@@ -162,11 +162,10 @@ function deltaFaqExport(parameters) {
     try {
         var result = processFaqs(true, fromThresholdDate);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
+        status = new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
     } catch (error) {
         status = new Status(Status.ERROR, 'FINISHED', 'Delta Faq Export Job Finished with ERROR ' + error.message);
     }
-
-    status = new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
 
     if (faqsProcessedSuccessfully > 0) {
         brainCommerceConfigsHelpers.updateFAQExportTimestampInBrainCommerceCOConfigs(jobStartTime);
