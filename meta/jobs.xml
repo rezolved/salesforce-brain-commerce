@@ -1,25 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <jobs xmlns="http://www.demandware.com/xml/impex/jobs/2015-07-01">
-    <job job-id="BrainCommerceDeltaProductExport">
-        <description/>
-        <parameters/>
-        <flow>
-            <context site-id="RefArch"/>
-            <step step-id="deltaProductExport" type="custom.deltaProductExport" enforce-restart="false">
-                <description/>
-                <parameters>
-                    <parameter name="dataPriorToHours">0</parameter>
-                </parameters>
-            </step>
-        </flow>
-        <rules/>
-        <triggers>
-            <run-once enabled="false">
-                <date>2025-01-31Z</date>
-                <time>04:44:00.000Z</time>
-            </run-once>
-        </triggers>
-    </job>
-
     <job job-id="BrainCommerceFullFaqExport">
         <description/>
         <parameters/>
@@ -32,10 +12,22 @@
         </flow>
         <rules/>
         <triggers>
-            <run-once enabled="false">
-                <date>2025-02-05Z</date>
-                <time>12:39:00.000Z</time>
-            </run-once>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>05:00:00.000Z</start-time>
+                    <interval>1d</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
         </triggers>
     </job>
 
@@ -53,12 +45,51 @@
         </flow>
         <rules/>
         <triggers>
-            <run-recurring enabled="false">
+            <run-recurring enabled="true">
                 <recurrence>
-                    <date-from>2025-01-31Z</date-from>
-                    <start-time>20:59:00.000Z</start-time>
-                    <interval>12M</interval>
-                    <day-of-week/>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>05:00:00.000Z</start-time>
+                    <interval>1d</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
+        </triggers>
+    </job>
+
+    <job job-id="BrainCommerceDeltaProductExport">
+        <description/>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="deltaProductExport" type="custom.deltaProductExport" enforce-restart="false">
+                <description/>
+                <parameters/>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>20:00:00.000Z</start-time>
+                    <interval>30m</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
                 </recurrence>
             </run-recurring>
         </triggers>
@@ -76,10 +107,22 @@
         </flow>
         <rules/>
         <triggers>
-            <run-once enabled="false">
-                <date>2025-02-05Z</date>
-                <time>12:45:00.000Z</time>
-            </run-once>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>20:01:00.000Z</start-time>
+                    <interval>30m</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
         </triggers>
     </job>
 </jobs>

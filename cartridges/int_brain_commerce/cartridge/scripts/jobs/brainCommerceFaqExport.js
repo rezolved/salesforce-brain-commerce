@@ -127,13 +127,19 @@ function fullFaqExport() {
     var status;
     var faqsProcessedSuccessfully = 0;
 
+    // Check if brain commerce service URL is configured
+    var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
+    if (!configValidationResult.valid) {
+        return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
     try {
         var result = processFaqs(false, null);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
+        status = new Status(Status.OK, 'FINISHED', 'Full Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
     } catch (error) {
         status = new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR' + error.message);
     }
-    status = new Status(Status.OK, 'FINISHED', 'Full Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
 
     if (faqsProcessedSuccessfully > 0) {
         brainCommerceConfigsHelpers.updateFAQExportTimestampInBrainCommerceCOConfigs(jobStartTime);
@@ -159,14 +165,19 @@ function deltaFaqExport(parameters) {
     var status;
     var faqsProcessedSuccessfully = 0;
 
+    // Check if brain commerce service URL is configured
+    var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
+    if (!configValidationResult.valid) {
+        return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
     try {
         var result = processFaqs(true, fromThresholdDate);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
+        status = new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
     } catch (error) {
         status = new Status(Status.ERROR, 'FINISHED', 'Delta Faq Export Job Finished with ERROR ' + error.message);
     }
-
-    status = new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
 
     if (faqsProcessedSuccessfully > 0) {
         brainCommerceConfigsHelpers.updateFAQExportTimestampInBrainCommerceCOConfigs(jobStartTime);
