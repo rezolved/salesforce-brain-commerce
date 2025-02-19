@@ -15,7 +15,7 @@ var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainComm
 
 var defaultCurrency = Site.current.getDefaultCurrency();
 var braincommerceProductLastExport;
-var productAttributes = JSON.parse(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping')) || {};
+var productAttributes = brainCommerceConfigsHelpers.parseContent(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping'));
 
 /**
  * Generates a list of category paths from an array of categories.
@@ -348,6 +348,12 @@ function fullProductExport(parameters) {
     var productsProcessedSuccessfully = 0;
     braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
 
+    // Check if brain commerce service URL is configured
+    var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
+    if (!configValidationResult.valid) {
+        return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
     try {
         // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
@@ -355,12 +361,11 @@ function fullProductExport(parameters) {
             var result = processProducts(allProducts, false, null, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
+        status = new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
     } catch (error) {
         Logger.error('Error in Full Product Export Job: {0}', error.message);
         status = new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + error.message);
     }
-
-    status = new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
 
     // Update the last export timestamp if products were processed successfully
     if (productsProcessedSuccessfully > 0) {
@@ -391,6 +396,12 @@ function deltaProductExport(parameters) {
     var productsProcessedSuccessfully = 0;
     braincommerceProductLastExport = brainCommerceConfigsHelpers.getBrainCommerceProductsLastExportTime();
 
+    // Check if brain commerce service URL is configured
+    var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
+    if (!configValidationResult.valid) {
+        return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
     try {
         // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
@@ -398,11 +409,10 @@ function deltaProductExport(parameters) {
             var result = processProducts(allProducts, true, fromThresholdDate, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
+        status = new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
     } catch (error) {
         status = new Status(Status.ERROR, 'FINISHED', 'Delta Product Export Job Finished with ERROR ' + error.message);
     }
-
-    status = new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);
 
     // Update the last export timestamp if products were processed successfully
     if (productsProcessedSuccessfully > 0) {

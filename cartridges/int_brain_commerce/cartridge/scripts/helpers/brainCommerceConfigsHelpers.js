@@ -6,6 +6,7 @@ var Logger = require('dw/system/Logger');
 var Site = require('dw/system/Site');
 var currentSite = Site.getCurrent().getID();
 var constants = require('*/cartridge/scripts/constants');
+var Resource = require('dw/web/Resource');
 
 /**
  * Fetches the Brain Commerce custom object configurations or creates a new one if not available.
@@ -37,6 +38,38 @@ function parseContent(stringData) {
     } catch (error) {
         return {};
     }
+}
+
+/**
+ * Validates the required configuration for the Brain Commerce product ingestion job.
+ *
+ * @returns {Object} An object containing a 'valid' flag and a 'message' property with
+ * an error message if the configuration is invalid.
+ */
+function validateConfigForIngestion() {
+    var productMapping = parseContent(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping'));
+    var serviceUrl = Site.current.getCustomPreferenceValue('brainCommerceIngestorAPIUrl');
+    var serviceApiKey = Site.current.getCustomPreferenceValue('brainCommerceIngestorAPIKey');
+    var brainCommerceBackendEnabled = Site.current.getCustomPreferenceValue('isBrainCommerceBackendEnabled');
+
+    var result = {
+        message: '',
+        valid: false
+    };
+
+    if (!brainCommerceBackendEnabled) {
+        result.message = Resource.msg('label.backendenabled', 'brainCommerce', null);
+    } else if (Object.keys(productMapping).length === 0) {
+        result.message = Resource.msg('label.productmapping', 'brainCommerce', null);
+    } else if (!serviceUrl) {
+        result.message = Resource.msg('label.serviceurl', 'brainCommerce', null);
+    } else if (!serviceApiKey) {
+        result.message = Resource.msg('label.serviceapikey', 'brainCommerce', null);
+    } else {
+        result.valid = true;
+    }
+
+    return result;
 }
 
 /**
@@ -165,5 +198,7 @@ module.exports = {
     updateProductExportTimestampInBrainCommerceCOConfigs: updateProductExportTimestampInBrainCommerceCOConfigs,
     updateFAQExportTimestampInBrainCommerceCOConfigs: updateFAQExportTimestampInBrainCommerceCOConfigs,
     compareInventoryRecordIfTimeComarisonFails: compareInventoryRecordIfTimeComarisonFails,
-    updateInventoryRecordOnSuccessResponse: updateInventoryRecordOnSuccessResponse
+    updateInventoryRecordOnSuccessResponse: updateInventoryRecordOnSuccessResponse,
+    validateConfigForIngestion: validateConfigForIngestion,
+    parseContent: parseContent
 };

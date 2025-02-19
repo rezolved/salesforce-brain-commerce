@@ -47,22 +47,6 @@
                 <min-length>0</min-length>
                 <default-value>brainCommerceFAQ</default-value>
             </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceDeltaExportBufferTime">
-                <display-name xml:lang="x-default">Buffer Time For Product Delta Export (In Seconds)</display-name>
-                <description xml:lang="x-default">Buffer time to compare product last modified time and brain commerce last export time.</description>
-                <type>int</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <default-value>60</default-value>
-            </attribute-definition>
-            <attribute-definition attribute-id="brainCommerceDeltaExportBufferTimeFAQ">
-                <display-name xml:lang="x-default">Buffer Time For FAQ Delta Export (In Seconds)</display-name>
-                <description xml:lang="x-default">Buffer time to compare FAQ last modified time and brain commerce last export time.</description>
-                <type>int</type>
-                <mandatory-flag>false</mandatory-flag>
-                <externally-managed-flag>false</externally-managed-flag>
-                <default-value>60</default-value>
-            </attribute-definition>
             <attribute-definition attribute-id="brainCommerceProductAttributeMapping">
                 <display-name xml:lang="x-default">Product Attribute Mapping</display-name>
                 <type>text</type>
@@ -107,8 +91,6 @@
                 <attribute attribute-id="brainCommerceIngestorAPIKey"/>
                 <attribute attribute-id="brainCommerceIngestorAPIUrl"/>
                 <attribute attribute-id="brainCommerceFAQCustomObjectID"/>
-                <attribute attribute-id="brainCommerceDeltaExportBufferTime"/>
-                <attribute attribute-id="brainCommerceDeltaExportBufferTimeFAQ"/>
                 <attribute attribute-id="brainCommerceProductAttributeMapping"/>
                 <attribute attribute-id="isBrainCommerceFrontendEnabled"/>
                 <attribute attribute-id="brainCommerceFrontendAPIKey"/>
