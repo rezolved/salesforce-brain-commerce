@@ -45,12 +45,6 @@
             "parameters": {
                 "parameter": [
                     {
-                        "@name": "dataPriorToHours",
-                        "@type": "string",
-                        "@required": "false",
-                        "description": "Export data prior to hours"
-                    },
-                    {
                         "@name": "listPriceBookId",
                         "@type": "string",
                         "@required": "false",
@@ -102,16 +96,6 @@
             "function": "deltaFaqExport",
             "transactional": "false",
             "timeout-in-seconds": "900",
-            "parameters": {
-                "parameter": [
-                    {
-                        "@name": "faqDataPriorToHours",
-                        "@type": "string",
-                        "@required": "false",
-                        "description": "Faq Export data prior to hours"
-                    }
-                ]
-            },
             "status-codes": {
                 "status": [{
                         "@code": "ERROR",
