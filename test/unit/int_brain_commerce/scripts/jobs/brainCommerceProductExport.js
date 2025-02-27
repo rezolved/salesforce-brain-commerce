@@ -115,8 +115,8 @@ var mockProductMgr = {
 
 var mockGetProductPrices = function (product, priceBookId) {
     return {
-        listPrice: product && product.priceModel ? (product.priceModel.getPriceBookPrice(priceBookId)?.value || 0) : 0,
-        salePrice: product && product.priceModel ? (product.priceModel.minPrice?.value || 0) : 0,
+        listPrice: product && product.priceModel ? (product.priceModel.getPriceBookPrice(priceBookId).value || 0) : 0,
+        salePrice: product && product.priceModel ? (product.priceModel.minPrice.value || 0) : 0,
         currency: 'USD'
     };
 };
