@@ -12,11 +12,11 @@ base = {
         method: 'POST'
     },
     RESET_PRODUCTS_COLLECTION_CONFIG: {
-        endPoint: '/v1/products/reset-collection',
+        endPoint: '/v1/product/reset-collection',
         method: 'DELETE'
     },
     RESET_FAQS_COLLECTION_CONFIG: {
-        endPoint: '/v1/faqs/reset-collection',
+        endPoint: '/v1/faq/reset-collection',
         method: 'DELETE'
     },
     BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_ID: 'brainCommerceConfigs',
