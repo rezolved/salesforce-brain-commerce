@@ -6,8 +6,8 @@ var serviceEndPointUrl = Site.current.getCustomPreferenceValue('brainCommerceIng
 
 var service = LocalServiceRegistry.createService('int_braincommerce.http.service', {
     createRequest: function (svc, params) {
-        svc.setURL(serviceEndPointUrl + params.endPoint);
-        svc.setRequestMethod('POST');
+        svc.setURL(serviceEndPointUrl + params.endPointConfigs.endPoint);
+        svc.setRequestMethod(params.endPointConfigs.method);
         svc.addHeader('Content-Type', 'application/json');
         svc.addHeader('X-API-Key', Site.current.getCustomPreferenceValue('brainCommerceIngestorAPIKey'));
         svc.addHeader('accept', 'application/json');
