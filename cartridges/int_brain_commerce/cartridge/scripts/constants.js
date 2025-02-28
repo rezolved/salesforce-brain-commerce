@@ -3,8 +3,22 @@
 var base = module.superModule;
 
 base = {
-    PRODUCT_END_POINT: '/v1/product',
-    FAQ_END_POINT: '/v1/faq',
+    ADD_PRODUCTS_CONFIG: {
+        endPoint: '/v1/product',
+        method: 'POST'
+    },
+    ADD_FAQS_CONFIG: {
+        endPoint: '/v1/faq',
+        method: 'POST'
+    },
+    RESET_PRODUCTS_COLLECTION_CONFIG: {
+        endPoint: '/v1/product/reset-collection',
+        method: 'DELETE'
+    },
+    RESET_FAQS_COLLECTION_CONFIG: {
+        endPoint: '/v1/faq/reset-collection',
+        method: 'DELETE'
+    },
     BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_ID: 'brainCommerceConfigs',
     BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_RECORD_ID: 'brainCommerceConfigKey'
 };

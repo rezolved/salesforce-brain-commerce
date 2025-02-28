@@ -40,7 +40,7 @@ function createFaqObject(faq) {
 function sendFaqsToBrainCommerce(faqsRequest) {
     var response = brainService.service.call({
         requestBody: faqsRequest,
-        endPoint: constants.FAQ_END_POINT
+        endPointConfigs: constants.ADD_FAQS_CONFIG
     });
 
     // Update brainCommerceFaqLastExport faq custom attribute
@@ -115,6 +115,24 @@ function processFaqs(isDelta, fromThresholdDate) {
 }
 
 /**
+ * Resets the FAQs collection in Brain Commerce.
+ * @returns {boolean} Returns true if the collection was successfully reset, otherwise false.
+ */
+function resetFAQSCollection() {
+    var response = brainService.service.call({
+        requestBody: {},
+        endPointConfigs: constants.RESET_FAQS_COLLECTION_CONFIG
+    });
+
+    if (!(response && response.status === 'OK')) {
+        Logger.error('Error in Brain commerce reset faq service: {0}', response.msg);
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * Executes a full FAQ export job by processing all FAQs.
  *
  * @returns {Status} The job status after processing the FAQs.
@@ -131,6 +149,12 @@ function fullFaqExport() {
     var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
     if (!configValidationResult.valid) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
+    // Reset the faqs collection before full export
+    var hasCollectionReset = resetFAQSCollection();
+    if (!hasCollectionReset) {
+        return new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR while resetting collection');
     }
 
     try {

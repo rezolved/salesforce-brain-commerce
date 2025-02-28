@@ -200,7 +200,7 @@ function createProductObject(product, listPriceBookId) {
 function sendProductsToBrainCommerce(productsRequest, productsToBeExported, listPriceBookId) {
     var response = brainService.service.call({
         requestBody: productsRequest,
-        endPoint: constants.PRODUCT_END_POINT
+        endPointConfigs: constants.ADD_PRODUCTS_CONFIG
     });
 
     // Update brainCommerceLastExport product custom attribute
@@ -331,6 +331,24 @@ function getPriceBookId() {
 }
 
 /**
+ * Resets the products collection in Brain Commerce.
+ * @returns {boolean} Returns true if the collection was successfully reset, otherwise false.
+ * */
+function resetProductsCollection() {
+    var response = brainService.service.call({
+        requestBody: {},
+        endPointConfigs: constants.RESET_PRODUCTS_COLLECTION_CONFIG
+    });
+
+    if (!(response && response.status === 'OK')) {
+        Logger.error('Error in Brain commerce reset product service: {0}', response.msg);
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * Exports all site products by processing them through the `processProducts` function.
  * @param {Object} parameters - The parameters object containing filtering options.
  * @returns {dw/system/Status} returns job status
@@ -352,6 +370,12 @@ function fullProductExport(parameters) {
     var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
     if (!configValidationResult.valid) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
+    // Reset product collection before full export
+    var hasCollectionReset = resetProductsCollection();
+    if (!hasCollectionReset) {
+        return new Status(Status.ERROR, 'FINISHED', 'Full Faq Export Job Finished with ERROR: Resetting Product Collection Failed');
     }
 
     try {
