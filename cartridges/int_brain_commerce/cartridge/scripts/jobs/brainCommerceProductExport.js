@@ -402,7 +402,7 @@ function fullProductExport(parameters) {
  * Deletes products from Brain Commerce that are mentioned in the delete list in Brain Commerce custom object.
  * */
 function deleteProductsFromBrainCommerce() {
-    var brainCommerceCOConfigs = getCurentOrNewBrainCommerceCOConfigs();
+    var brainCommerceCOConfigs = brainCommerceConfigsHelpers.getCurentOrNewBrainCommerceCOConfigs();
     var productsToBeDeleted = brainCommerceCOConfigs && brainCommerceCOConfigs.custom.productsToBeDeleted;
 
     if (productsToBeDeleted && productsToBeDeleted.length > 0) {
