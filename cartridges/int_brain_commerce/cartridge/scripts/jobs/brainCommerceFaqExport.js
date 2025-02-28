@@ -117,7 +117,7 @@ function processFaqs(isDelta) {
 function resetFAQSCollection() {
     var response = brainService.service.call({
         requestBody: {},
-        endPointConfigs: constants.RESET_FAQS_COLLECTION_CONFIG
+        endPointConfigs: constants.FAQS_COLLECTION_CONFIG
     });
 
     if (!(response && response.status === 'OK')) {
