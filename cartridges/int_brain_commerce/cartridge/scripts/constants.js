@@ -19,6 +19,18 @@ base = {
         endPoint: '/v1/faq/reset-collection',
         method: 'DELETE'
     },
+    getDeleteProductEndPoint: function (productId) {
+        return {
+            endPoint: '/v1/product/' + productId,
+            method: 'DELETE'
+        };
+    },
+    getDeleteFaqEndPoint: function (faqId) {
+        return {
+            endPoint: '/v1/faq/' + faqId,
+            method: 'DELETE'
+        };
+    },
     BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_ID: 'brainCommerceConfigs',
     BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_RECORD_ID: 'brainCommerceConfigKey'
 };

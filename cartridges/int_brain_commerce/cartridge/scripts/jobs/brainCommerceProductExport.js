@@ -399,6 +399,46 @@ function fullProductExport(parameters) {
 }
 
 /**
+ * Deletes products from Brain Commerce that are mentioned in the delete list in Brain Commerce custom object.
+ * */
+function deleteProductsFromBrainCommerce() {
+    var brainCommerceCOConfigs = getCurentOrNewBrainCommerceCOConfigs();
+    var productsToBeDeleted = brainCommerceCOConfigs && brainCommerceCOConfigs.custom.productsToBeDeleted;
+
+    if (productsToBeDeleted && productsToBeDeleted.length > 0) {
+        var deletedProducts = [];
+
+        // Delete products from Brain Commerce
+        productsToBeDeleted.forEach(function (productID) {
+            if (productID) {
+                var response = brainService.service.call({
+                    requestBody: {},
+                    endPointConfigs: constants.getDeleteProductEndPoint(productID)
+                });
+    
+                if (response && response.status === 'OK') {
+                    deletedProducts.push(productID);
+                } else {
+                    Logger.error('Error in Brain commerce delete product service for product {0} : {1}', productID, response.msg);
+                }
+            }
+        });
+
+        // Remove deleted products from the list
+        if (deletedProducts.length > 0) {
+            var updatedProductsToBeDeleted = productsToBeDeleted.filter(function (productID) {
+                return deletedProducts.indexOf(productID) === -1;
+            });
+
+            // Update the list of products to be deleted
+            Transaction.wrap(function () {
+                brainCommerceCOConfigs.custom.productsToBeDeleted = updatedProductsToBeDeleted;
+            });
+        }
+    }
+}
+
+/**
  * Exports only recently modified site products by processing them through the `processProducts` function.
  *
  * @param {Object} parameters - The parameters object containing filtering options.
@@ -424,6 +464,13 @@ function deltaProductExport(parameters) {
     var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
     if (!configValidationResult.valid) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
+    try {
+        // Delete products mentioned in the delete list in Brain Commerce custom object
+        deleteProductsFromBrainCommerce();
+    } catch (error) {
+        Logger.error('Error while deleting products from Brain Commerce: {0}', error.message);
     }
 
     try {
