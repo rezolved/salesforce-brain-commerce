@@ -9,6 +9,7 @@ var constants = require('*/cartridge/scripts/constants');
 var brainService = require('*/cartridge/scripts/services/brainCommerceService');
 var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
 var braincommerceLastFaqExport = brainCommerceConfigsHelpers.getBrainCommerceFAQsLastExportTime();
+var Transaction = require('dw/system/Transaction');
 
 /**
  * Creates an FAQ object from the given FAQ data.
@@ -174,7 +175,7 @@ function fullFaqExport() {
 
 /**
  * Deletes FAQs from Brain Commerce that are mentioned in the delete list in Brain Commerce custom object.
- **/
+ */
 function deleteFaqsFromBrainCommerce() {
     var brainCommerceConfigs = brainCommerceConfigsHelpers.getCurentOrNewBrainCommerceCOConfigs();
     var faqsToBeDeleted = brainCommerceConfigs && brainCommerceConfigs.custom.faqsToBeDeleted;
@@ -189,7 +190,7 @@ function deleteFaqsFromBrainCommerce() {
                     requestBody: {},
                     endPointConfigs: constants.getDeleteFaqEndPoint(faqID)
                 });
-    
+
                 if (response && response.status === 'OK') {
                     deletedFAQs.push(faqID);
                 } else {
@@ -203,13 +204,12 @@ function deleteFaqsFromBrainCommerce() {
             var updatedFaqsToBeDeleted = faqsToBeDeleted.filter(function (faqID) {
                 return !deletedFAQs.includes(faqID);
             });
-        
+
             // Update the list of FAQs to be deleted
             Transaction.wrap(function () {
                 brainCommerceConfigs.custom.faqsToBeDeleted = updatedFaqsToBeDeleted;
             });
         }
-
     }
 }
 

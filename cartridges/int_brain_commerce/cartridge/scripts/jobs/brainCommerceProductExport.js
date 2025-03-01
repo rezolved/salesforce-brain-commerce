@@ -16,6 +16,7 @@ var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainComm
 var defaultCurrency = Site.current.getDefaultCurrency();
 var braincommerceProductLastExport;
 var productAttributes = brainCommerceConfigsHelpers.parseContent(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping'));
+var Transaction = require('dw/system/Transaction');
 
 /**
  * Generates a list of category paths from an array of categories.
@@ -415,7 +416,7 @@ function deleteProductsFromBrainCommerce() {
                     requestBody: {},
                     endPointConfigs: constants.getDeleteProductEndPoint(productID)
                 });
-    
+
                 if (response && response.status === 'OK') {
                     deletedProducts.push(productID);
                 } else {
