@@ -220,21 +220,18 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
 /**
  * Checks if the product is eligible for delta export
  * @param {dw.catalog.Product} product Product Object
- * @param {Date} fromThresholdDate Threshold for modified products
  * @param {string} listPriceBookId list price book ID
  * @returns {boolean} true if product is eligible for delta export, false otherwise
  */
-function isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBookId) {
+function isProductEligibleForDeltaExport(product, listPriceBookId) {
     if (!product) {
         return false;
     }
 
-    // Check if the product is updated after threshold date or last export
+    // Check if the product is updated after last export
     var productLastModified = new Date(product.getLastModified());
     var brainCommerceLastExport = (braincommerceProductLastExport && new Date(braincommerceProductLastExport)) || null;
-    var isProductUpdatedAfterThreshold = (fromThresholdDate && productLastModified >= fromThresholdDate) || false;
-    var isProductUpdatedAfterLastExport = brainCommerceLastExport && productLastModified > brainCommerceLastExport;
-    var isProductUpdated = (fromThresholdDate ? isProductUpdatedAfterThreshold : isProductUpdatedAfterLastExport);
+    var isProductUpdated = brainCommerceLastExport && productLastModified > brainCommerceLastExport;
 
     // Check if the product availability or price status has changed
     if (!isProductUpdated) {
@@ -250,11 +247,10 @@ function isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBo
  *
  * @param {Iterator} products - An iterator of product objects.
  * @param {boolean} isDeltaFeed - Whether to process only recently modified products.
- * @param {Date} fromThresholdDate - The threshold time for modified products when `isDeltaFeed` is true.
  *  @param {string} listPriceBookId - The ID of the price book to fetch product prices.
  * @returns {Object} - Returns data related to process such as number of successfully processed products.
  */
-function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBookId) {
+function processProducts(products, isDeltaFeed, listPriceBookId) {
     var productsRequest = [];
     var productsToBeExported = [];
     var productsProcessedSuccessfully = 0;
@@ -266,8 +262,8 @@ function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBook
         var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup()) && product.isOnline();
         if (eligibleProduct) {
             if (isDeltaFeed) {
-                var isProductEligibletoExport = isProductEligibleForDeltaExport(product, fromThresholdDate, listPriceBookId);
-                // Do not send the product if it was updated before threshold or not updated after last export
+                var isProductEligibletoExport = isProductEligibleForDeltaExport(product, listPriceBookId);
+                // Do not send the product if it was updated before updated after last export
                 if (!isProductEligibletoExport) {
                     product = null;
                 }
@@ -279,7 +275,7 @@ function processProducts(products, isDeltaFeed, fromThresholdDate, listPriceBook
                 productsProcessedSuccessfully += 1;
 
                 // Add master product also in the list if the product is a variant and it's delta feed
-                if (isDeltaFeed && product.isVariant() && !isProductEligibleForDeltaExport(product.masterProduct, fromThresholdDate, listPriceBookId)) {
+                if (isDeltaFeed && product.isVariant() && !isProductEligibleForDeltaExport(product.masterProduct, listPriceBookId)) {
                     productsRequest.push(createProductObject(product.masterProduct, listPriceBookId));
                     productsToBeExported.push(product.masterProduct);
                     productsProcessedSuccessfully += 1;
@@ -443,7 +439,6 @@ function deleteProductsFromBrainCommerce() {
  * Exports only recently modified site products by processing them through the `processProducts` function.
  *
  * @param {Object} parameters - The parameters object containing filtering options.
- * @param {number} parameters.dataPriorToHours - The number of hours before the current time to filter modified products.
  * @returns {dw/system/Status} returns job status
  */
 function deltaProductExport(parameters) {
@@ -453,8 +448,6 @@ function deltaProductExport(parameters) {
 
     // Get the list price book ID
     var listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-    var hours = parameters.dataPriorToHours;
-    var fromThresholdDate = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
 
     // Initalize variables for status and products processed successfully
     var status;
@@ -478,7 +471,7 @@ function deltaProductExport(parameters) {
         // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
         if (productAttributes) {
-            var result = processProducts(allProducts, true, fromThresholdDate, listPriceBookId);
+            var result = processProducts(allProducts, true, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
         status = new Status(Status.OK, 'FINISHED', 'Delta Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);

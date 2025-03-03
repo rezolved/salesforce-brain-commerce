@@ -57,10 +57,9 @@ function sendFaqsToBrainCommerce(faqsRequest) {
  * Processes FAQs for export to Brain Commerce, filtering based on modification time and sending them in chunks.
  *
  * @param {boolean} isDelta - Indicates whether to export only modified FAQs (delta export).
- * @param {number} fromThresholdDate  - The time threshold (in hours) for filtering FAQs based on last modification.
  * @returns {boolean} Returns true if all FAQs were successfully exported, otherwise false.
  */
-function processFaqs(isDelta, fromThresholdDate) {
+function processFaqs(isDelta) {
     var faqsRequest = [];
     var faqsToBeExported = [];
     var faqCustomObjectID = Site.getCurrent().getCustomPreferenceValue('brainCommerceFAQCustomObjectID');
@@ -73,11 +72,8 @@ function processFaqs(isDelta, fromThresholdDate) {
         if (faq && isDelta) {
             var customObjectLastModified = new Date(faq.getLastModified());
             var brainCommerceFaqLastExport = (braincommerceLastFaqExport && new Date(braincommerceLastFaqExport)) || null;
-            var faqUpdatedBeforeThreshold = (fromThresholdDate && customObjectLastModified >= fromThresholdDate) || false;
-            var faqUpdatedBeforeLastExport = brainCommerceFaqLastExport && customObjectLastModified >= brainCommerceFaqLastExport;
-            var isFaqEligibletoExport = fromThresholdDate ? faqUpdatedBeforeThreshold : faqUpdatedBeforeLastExport;
+            var isFaqEligibletoExport = brainCommerceFaqLastExport && customObjectLastModified >= brainCommerceFaqLastExport;
 
-            // Do not send the faq if it was updated before threshold or not updated after last export
             if (!isFaqEligibletoExport) {
                 faq = null;
             }
@@ -216,17 +212,13 @@ function deleteFaqsFromBrainCommerce() {
 /**
  * Executes a delta FAQ export job by processing only modified FAQs within a given time range.
  *
- * @param {Object} parameters - The parameters for the export job.
- * @param {number} parameters.faqDataPriorToHours - The number of hours to look back for modified FAQs.
  * @returns {Status} The job status after processing the FAQs.
  */
-function deltaFaqExport(parameters) {
+function deltaFaqExport() {
     Logger.info('***** Delta Faq Export Job Started *****');
 
     var jobStartTime = new Date();
 
-    var hours = parameters.faqDataPriorToHours;
-    var fromThresholdDate = hours ? new Date(Date.now() - hours * 60 * 60 * 1000) : null;
     var status;
     var faqsProcessedSuccessfully = 0;
 
@@ -244,7 +236,7 @@ function deltaFaqExport(parameters) {
     }
 
     try {
-        var result = processFaqs(true, fromThresholdDate);
+        var result = processFaqs(true);
         faqsProcessedSuccessfully = result && result.faqsProcessedSuccessfully;
         status = new Status(Status.OK, 'FINISHED', 'Delta Faq Export Job Finished, Faqs Processed => ' + faqsProcessedSuccessfully);
     } catch (error) {

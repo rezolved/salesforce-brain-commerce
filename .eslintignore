@@ -6,3 +6,4 @@ codecept.conf.js
 bm_app_storefront_base
 app_storefront_base
 Makefile.js
+cartridges/int_brain_commerce/cartridge/static/default/js/
