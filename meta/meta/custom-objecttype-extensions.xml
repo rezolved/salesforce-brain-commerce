@@ -24,6 +24,20 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
+            <attribute-definition attribute-id="productsToBeDeleted">
+                <display-name xml:lang="x-default">Products To Be Deleted From Brain Commerce</display-name>
+                <type>set-of-strings</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="faqsToBeDeleted">
+                <display-name xml:lang="x-default">FAQs To Be Deleted From Brain Commerce</display-name>
+                <type>set-of-strings</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
         </attribute-definitions>
         <group-definitions>
             <attribute-group group-id="brainCommerceLastExport">
@@ -31,6 +45,11 @@
                 <attribute attribute-id="brainCommerceConfigKey"/>
                 <attribute attribute-id="faqLastExport"/>
                 <attribute attribute-id="productLastExport"/>
+            </attribute-group>
+            <attribute-group group-id="deleteConfig">
+                <display-name xml:lang="x-default">Delete Config</display-name>
+                <attribute attribute-id="productsToBeDeleted"/>
+                <attribute attribute-id="faqsToBeDeleted"/>
             </attribute-group>
         </group-definitions>
     </custom-type>
