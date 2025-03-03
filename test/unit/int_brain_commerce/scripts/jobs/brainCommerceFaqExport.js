@@ -1,5 +1,8 @@
 'use strict';
 
+var { Callbacks } = require('jquery');
+var { wrap } = require('lodash');
+
 var assert = require('chai').assert;
 var proxyquire = require('proxyquire').noCallThru().noPreserveCache();
 
@@ -54,6 +57,12 @@ var mockCustomObjectMgr = {
     }
 };
 
+var mockTransaction = {
+    wrap: function (callback) {
+        return callback;
+    }
+}
+
 var mockBrainService = {
     service: {
         call: function () {
@@ -98,6 +107,7 @@ var brainCommerceFAQExport = proxyquire('../../../../../cartridges/int_brain_com
     'dw/system/Logger': mockLogger,
     'dw/system/Status': mockStatus,
     'dw/object/CustomObjectMgr': mockCustomObjectMgr,
+    'dw/system/Transaction': mockTransaction,
     '*/cartridge/scripts/services/brainCommerceService': mockBrainService,
     '*/cartridge/scripts/helpers/brainCommerceConfigsHelpers': mockBrainCommerceConfigsHelpers,
     '*/cartridge/scripts/constants': constants

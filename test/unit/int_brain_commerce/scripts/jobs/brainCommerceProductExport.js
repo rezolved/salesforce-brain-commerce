@@ -209,6 +209,12 @@ var mockBrainCommerceUtils = {
     }
 };
 
+var mockTransaction = {
+    wrap: function (callback) {
+        return callback;
+    }
+}
+
 // Load the module with mock dependencies
 var braincommerceProductExport = proxyquire('../../../../../cartridges/int_brain_commerce/cartridge/scripts/jobs/braincommerceProductExport', {
     'dw/system/Site': mockSite,
@@ -216,6 +222,7 @@ var braincommerceProductExport = proxyquire('../../../../../cartridges/int_brain
     'dw/system/Status': mockStatus,
     'dw/catalog/ProductMgr': mockProductMgr,
     'dw/catalog/PriceBookMgr': mockPriceBookMgr,
+    'dw/system/Transaction': mockTransaction,
     '*/cartridge/scripts/services/brainCommerceService': mockBrainService,
     '*/cartridge/scripts/helpers/brainCommerceConfigsHelpers': mockBrainCommerceConfigsHelpers,
     '*/cartridge/scripts/constants': constants,

@@ -229,7 +229,7 @@ function deltaFaqExport() {
     }
 
     try {
-        // Delete FAQs mentioned in the delete list in Brain Commerce custom object 
+        // Delete FAQs mentioned in the delete list in Brain Commerce custom object
         deleteFaqsFromBrainCommerce();
     } catch (error) {
         Logger.error('Error in deleting FAQs from Brain Commerce: {0}', error.message);
