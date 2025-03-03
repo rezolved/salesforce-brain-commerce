@@ -9,6 +9,7 @@ var constants = require('*/cartridge/scripts/constants');
 var brainService = require('*/cartridge/scripts/services/brainCommerceService');
 var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
 var braincommerceLastFaqExport = brainCommerceConfigsHelpers.getBrainCommerceFAQsLastExportTime();
+var Transaction = require('dw/system/Transaction');
 
 /**
  * Creates an FAQ object from the given FAQ data.
@@ -173,6 +174,46 @@ function fullFaqExport() {
 }
 
 /**
+ * Deletes FAQs from Brain Commerce that are mentioned in the delete list in Brain Commerce custom object.
+ */
+function deleteFaqsFromBrainCommerce() {
+    var brainCommerceConfigs = brainCommerceConfigsHelpers.getCurentOrNewBrainCommerceCOConfigs();
+    var faqsToBeDeleted = brainCommerceConfigs && brainCommerceConfigs.custom.faqsToBeDeleted;
+
+    if (faqsToBeDeleted && faqsToBeDeleted.length > 0) {
+        var deletedFAQs = [];
+
+        // Delete FAQs from Brain Commerce
+        faqsToBeDeleted.forEach(function (faqID) {
+            if (faqID) {
+                var response = brainService.service.call({
+                    requestBody: {},
+                    endPointConfigs: constants.getDeleteFaqEndPoint(faqID)
+                });
+
+                if (response && response.status === 'OK') {
+                    deletedFAQs.push(faqID);
+                } else {
+                    Logger.error('Error in Brain commerce delete faq service for faq {0} : {1}', faqID, response.msg);
+                }
+            }
+        });
+
+        // Remove deleted FAQs from the list
+        if (deletedFAQs.length > 0) {
+            var updatedFaqsToBeDeleted = faqsToBeDeleted.filter(function (faqID) {
+                return !deletedFAQs.includes(faqID);
+            });
+
+            // Update the list of FAQs to be deleted
+            Transaction.wrap(function () {
+                brainCommerceConfigs.custom.faqsToBeDeleted = updatedFaqsToBeDeleted;
+            });
+        }
+    }
+}
+
+/**
  * Executes a delta FAQ export job by processing only modified FAQs within a given time range.
  *
  * @param {Object} parameters - The parameters for the export job.
@@ -193,6 +234,13 @@ function deltaFaqExport(parameters) {
     var configValidationResult = brainCommerceConfigsHelpers.validateConfigForIngestion();
     if (!configValidationResult.valid) {
         return new Status(Status.ERROR, 'FINISHED', 'Full Product Export Job Finished with ERROR ' + configValidationResult.message);
+    }
+
+    try {
+        // Delete FAQs mentioned in the delete list in Brain Commerce custom object 
+        deleteFaqsFromBrainCommerce();
+    } catch (error) {
+        Logger.error('Error in deleting FAQs from Brain Commerce: {0}', error.message);
     }
 
     try {
