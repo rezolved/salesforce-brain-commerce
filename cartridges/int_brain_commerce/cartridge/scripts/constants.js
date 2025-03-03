@@ -11,13 +11,13 @@ base = {
         endPoint: '/v1/faq',
         method: 'POST'
     },
-    RESET_PRODUCTS_COLLECTION_CONFIG: {
-        endPoint: '/v1/product/reset-collection',
-        method: 'DELETE'
+    PRODUCTS_COLLECTION_CONFIG: {
+        endPoint: '/v1/product/collection?delete_existing_collection=true',
+        method: 'POST'
     },
-    RESET_FAQS_COLLECTION_CONFIG: {
-        endPoint: '/v1/faq/reset-collection',
-        method: 'DELETE'
+    FAQS_COLLECTION_CONFIG: {
+        endPoint: '/v1/faq/collection?delete_existing_collection=true',
+        method: 'POST'
     },
     getDeleteProductEndPoint: function (productId) {
         return {

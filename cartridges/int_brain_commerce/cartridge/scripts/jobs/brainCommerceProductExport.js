@@ -334,7 +334,7 @@ function getPriceBookId() {
 function resetProductsCollection() {
     var response = brainService.service.call({
         requestBody: {},
-        endPointConfigs: constants.RESET_PRODUCTS_COLLECTION_CONFIG
+        endPointConfigs: constants.PRODUCTS_COLLECTION_CONFIG
     });
 
     if (!(response && response.status === 'OK')) {
