@@ -1,0 +1,69 @@
+name: Build and Package Cartridge
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build JavaScript
+        run: npm run build
+
+      - name: Check release version matches cartridge version
+        run: |
+          RELEASE_VERSION=${{ github.event.release.tag_name }}
+          CARTRIDGE_VERSION=$(node -p "require('./cartridges/int_brain_commerce/package.json').version")
+          if [[ "$RELEASE_VERSION" != "$CARTRIDGE_VERSION" ]]; then
+            echo "Release version ($RELEASE_VERSION) does not match cartridge version ($CARTRIDGE_VERSION)"
+            exit 1
+          fi
+
+      - name: Package Cartridge
+        run: |
+          mkdir -p build
+          zip -r build/cartridge.zip cartridges/int_brain_commerce -x "cartridges/int_brain_commerce/node_modules/*"
+
+      - name: Upload cartridge artifact
+        if: github.event_name != 'release' || env.ACT != 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: cartridge.zip
+          path: build/cartridge.zip
+
+      - name: Attach ZIP to release
+        if: github.event_name == 'release' && env.ACT != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/cartridge.zip
+
+      - name: Package Meta
+        run: |
+          mkdir -p build
+          zip -r build/meta.zip meta
+
+      - name: Upload meta artifact
+        if: github.event_name != 'release' || env.ACT != 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: meta.zip
+          path: build/meta.zip
+
+      - name: Attach Meta ZIP to release
+        if: github.event_name == 'release' && env.ACT != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/meta.zip
