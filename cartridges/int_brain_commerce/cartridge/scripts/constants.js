@@ -4,30 +4,30 @@ var base = module.superModule;
 
 base = {
     ADD_PRODUCTS_CONFIG: {
-        endPoint: '/v1/product',
+        endPoint: '/v1/products',
         method: 'POST'
     },
     ADD_FAQS_CONFIG: {
-        endPoint: '/v1/faq',
+        endPoint: '/v1/faqs',
         method: 'POST'
     },
     PRODUCTS_COLLECTION_CONFIG: {
-        endPoint: '/v1/product/collection?delete_existing_collection=true',
+        endPoint: '/v1/products/collection?delete_existing_collection=true',
         method: 'POST'
     },
     FAQS_COLLECTION_CONFIG: {
-        endPoint: '/v1/faq/collection?delete_existing_collection=true',
+        endPoint: '/v1/faqs/collection?delete_existing_collection=true',
         method: 'POST'
     },
     getDeleteProductEndPoint: function (productId) {
         return {
-            endPoint: '/v1/product/' + productId,
+            endPoint: '/v1/products/' + productId,
             method: 'DELETE'
         };
     },
     getDeleteFaqEndPoint: function (faqId) {
         return {
-            endPoint: '/v1/faq/' + faqId,
+            endPoint: '/v1/faqs/' + faqId,
             method: 'DELETE'
         };
     },
