@@ -35,7 +35,7 @@ function getProductCategories(categories) {
             currentCategory = currentCategory.parent;
         }
 
-        pathList.push(categoryPath.reverse().join('>'));
+        pathList.push(categoryPath.reverse().join('/'));
     }
     return pathList.join(',');
 }
