@@ -49,13 +49,3 @@ To run unit tests, use the following command:
 ```
 npm run test
 ```
-
-## Run Integration Tests
-
-* This cartridge's Integration tests are located in ./test/integration
-
-To run integration tests, use the following command:
-
-```
-npm run test:integration
-```
