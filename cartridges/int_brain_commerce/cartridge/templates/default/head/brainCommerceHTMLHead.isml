@@ -1,0 +1,3 @@
+<isif condition="${pdict.sdkURL}">
+    <script src="${pdict.sdkURL}" type="module" crossorigin="anonymous"></script>
+</isif>

@@ -1,0 +1,4 @@
+<input type="hidden" class="brainCommerceSDKBaseAPIURL" value="${pdict.baseAPIURL}" />
+<input type="hidden" class="brainCommerceSDKAPIKey" value="${pdict.sdkAPIKey}" />
+
+<script defer="defer" src="${URLUtils.staticURL('/js/brainCommerceSDK.js')}"></script>

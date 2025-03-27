@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xmlns="http://www.demandware.com/xml/impex/metadata/2006-10-31">
+    <custom-type type-id="brainCommerceConfigs">
+        <display-name xml:lang="x-default">Brain Commerce Configs</display-name>
+        <staging-mode>no-staging</staging-mode>
+        <storage-scope>site</storage-scope>
+        <key-definition attribute-id="brainCommerceConfigKey">
+            <display-name xml:lang="x-default">Brain Commerce Config Key</display-name>
+            <type>string</type>
+            <min-length>0</min-length>
+        </key-definition>
+        <attribute-definitions>
+            <attribute-definition attribute-id="faqLastExport">
+                <display-name xml:lang="x-default">Faq Last Export</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="productLastExport">
+                <display-name xml:lang="x-default">Product Last Export</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="productsToBeDeleted">
+                <display-name xml:lang="x-default">Products To Be Deleted From Brain Commerce</display-name>
+                <type>set-of-string</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="faqsToBeDeleted">
+                <display-name xml:lang="x-default">FAQs To Be Deleted From Brain Commerce</display-name>
+                <type>set-of-string</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+        </attribute-definitions>
+        <group-definitions>
+            <attribute-group group-id="brainCommerceLastExport">
+                <display-name xml:lang="x-default">Brain Commerce Last Export</display-name>
+                <attribute attribute-id="brainCommerceConfigKey"/>
+                <attribute attribute-id="faqLastExport"/>
+                <attribute attribute-id="productLastExport"/>
+            </attribute-group>
+            <attribute-group group-id="deleteConfig">
+                <display-name xml:lang="x-default">Delete Config</display-name>
+                <attribute attribute-id="productsToBeDeleted"/>
+                <attribute attribute-id="faqsToBeDeleted"/>
+            </attribute-group>
+        </group-definitions>
+    </custom-type>
+
+    <custom-type type-id="brainCommerceFAQ">
+        <display-name xml:lang="x-default">Brain Commerce FAQs</display-name>
+        <staging-mode>source-to-target</staging-mode>
+        <storage-scope>site</storage-scope>
+        <key-definition attribute-id="question">
+            <display-name xml:lang="x-default">Question</display-name>
+            <type>string</type>
+            <min-length>0</min-length>
+        </key-definition>
+        <attribute-definitions>
+            <attribute-definition attribute-id="answer">
+                <display-name xml:lang="x-default">Answer</display-name>
+                <type>text</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+        </attribute-definitions>
+        <group-definitions>
+            <attribute-group group-id="brainCommerce">
+                <display-name xml:lang="x-default">Brain Commerce</display-name>
+                <attribute attribute-id="question"/>
+                <attribute attribute-id="answer"/>
+                <attribute attribute-id="lastModified" system="true"/>
+            </attribute-group>
+        </group-definitions>
+    </custom-type>
+</metadata>

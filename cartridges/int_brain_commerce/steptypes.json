@@ -1,0 +1,112 @@
+{
+    "step-types": {
+        "script-module-step": [{
+            "@type-id": "custom.fullProductExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "Send Products Info",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
+            "function": "fullProductExport",
+            "transactional": "true",
+            "timeout-in-seconds": "900",
+            "parameters": {
+                "parameter": [
+                    {
+                        "@name": "listPriceBookId",
+                        "@type": "string",
+                        "@required": "false",
+                        "description": "list price book id"
+                    }
+                ]
+            },
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        },
+        {
+            "@type-id": "custom.deltaProductExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "Send Products Info",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
+            "function": "deltaProductExport",
+            "transactional": "true",
+            "timeout-in-seconds": "900",
+            "parameters": {
+                "parameter": [
+                    {
+                        "@name": "listPriceBookId",
+                        "@type": "string",
+                        "@required": "false",
+                        "description": "list price book id"
+                    }
+                ]
+            },
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        },
+        {
+            "@type-id": "custom.fullFaqExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "exporting faq",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceFaqExport.js",
+            "function": "fullFaqExport",
+            "transactional": "false",
+            "timeout-in-seconds": "900",
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        },
+        {
+            "@type-id": "custom.deltaFaqExport",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "exporting faq",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceFaqExport.js",
+            "function": "deltaFaqExport",
+            "transactional": "false",
+            "timeout-in-seconds": "900",
+            "status-codes": {
+                "status": [{
+                        "@code": "ERROR",
+                        "description": "Used when the step failed with an error."
+                    },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
+        }]
+    }
+}
