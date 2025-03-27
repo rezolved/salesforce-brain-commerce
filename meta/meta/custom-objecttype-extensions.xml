@@ -26,14 +26,14 @@
             </attribute-definition>
             <attribute-definition attribute-id="productsToBeDeleted">
                 <display-name xml:lang="x-default">Products To Be Deleted From Brain Commerce</display-name>
-                <type>set-of-strings</type>
+                <type>set-of-string</type>
                 <localizable-flag>false</localizable-flag>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
             <attribute-definition attribute-id="faqsToBeDeleted">
                 <display-name xml:lang="x-default">FAQs To Be Deleted From Brain Commerce</display-name>
-                <type>set-of-strings</type>
+                <type>set-of-string</type>
                 <localizable-flag>false</localizable-flag>
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>

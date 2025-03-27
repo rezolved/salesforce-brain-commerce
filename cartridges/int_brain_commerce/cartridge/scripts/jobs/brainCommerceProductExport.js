@@ -35,7 +35,7 @@ function getProductCategories(categories) {
             currentCategory = currentCategory.parent;
         }
 
-        pathList.push(categoryPath.reverse().join('>'));
+        pathList.push(categoryPath.reverse().join('/'));
     }
     return pathList.join(',');
 }
@@ -379,7 +379,7 @@ function fullProductExport(parameters) {
         // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
         if (productAttributes) {
-            var result = processProducts(allProducts, false, null, listPriceBookId);
+            var result = processProducts(allProducts, false, listPriceBookId);
             productsProcessedSuccessfully = result && result.productsProcessedSuccessfully;
         }
         status = new Status(Status.OK, 'FINISHED', 'Full Product Export Job Finished, Products Processed => ' + productsProcessedSuccessfully);

@@ -162,7 +162,7 @@ function compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId) {
     var isProductUpdated = false;
     if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
         var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-        var productData = product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory;
+        var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory;
         var parsedObject = parseContent(productData);
         var storedData = Object.prototype.hasOwnProperty.call(parsedObject, currentSite) ? parsedObject[currentSite] : '';
         isProductUpdated = storedData !== productAvailabilityAndPriceStatus;
