@@ -1,0 +1,40 @@
+REZOLVE BRAINCOMMERCE SALESFORCE EXTENSION USAGE LICENSE AGREEMENT
+
+Copyright (c) 2025 REZOLVE AI LTD. All rights reserved.
+
+This Software License Agreement (the "Agreement") is between REZOLVE AI LTD, a United Kingdom corporation, and the installer ("Licensee"). By installing, using, or distributing the software (the "Software"), Licensee agrees to the terms and conditions outlined in this Agreement.
+
+1. **License Grant**
+   REZOLVE grants Licensee a limited, non-exclusive, non-transferable, non-sublicensable, royalty-free license to:
+   - Use the Software internally and create modifications to build integrated products.
+   - Distribute the Software in object code form only as part of an integrated product, provided that such distribution is subject to an end-user license agreement that protects REZOLVE’s proprietary rights.
+
+2. **Restrictions**
+   - Licensee shall not disclose, sublicense, or make the Software available to any third party except as expressly permitted.
+   - Licensee may not reverse engineer, decompile, or disassemble the Software, except to the extent applicable law permits.
+   - Licensee must ensure that all distributed integrated products maintain 100% compatibility with REZOLVE’s services and updates.
+
+3. **Updates and Modifications**
+   - REZOLVE may provide updates to the Software upon payment of applicable fees.
+   - Licensee acknowledges that updates may not be backwards compatible with prior versions or modifications.
+
+4. **Confidentiality**
+   - Licensee agrees to treat all non-public technical, financial, or business information related to the Software as confidential.
+   - Licensee must take reasonable steps to prevent unauthorized disclosure of REZOLVE’s confidential information.
+
+5. **Feedback**
+   - Any feedback provided by Licensee regarding the Software may be used by REZOLVE for development and improvement without any obligation to Licensee.
+
+6. **Termination**
+   - This Agreement remains in effect unless terminated by either party with thirty (30) days' written notice before the end of the current term.
+   - Upon termination, Licensee must cease use of the Software and destroy all copies in their possession.
+
+7. **Disclaimer of Warranty**
+   - THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+
+8. **Limitation of Liability**
+   - IN NO EVENT SHALL REZOLVE BE LIABLE FOR INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING FROM THE USE OR INABILITY TO USE THE SOFTWARE.
+   - LIABILITY SHALL NOT EXCEED THE AMOUNT OF ANY ANNUAL MAINTENANCE FEES PAID TO REZOLVE.
+
+By installing or using the Software, Licensee acknowledges that they have read, understood, and agree to be bound by this Agreement.
+
