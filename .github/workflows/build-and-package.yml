@@ -36,8 +36,9 @@ jobs:
         run: |
           mkdir -p build
           zip -r build/int_brain_commerce.zip . \
-          -x "node_modules/*" ".git/*" ".github/*" "test/*" \
-          "cartridges/app_storefront_base/*" "cartridges/bm_app_storefront_base/*" "cartridges/modules/*"
+          -x "node_modules/*" ".git/*" ".github/*" \
+          "cartridges/app_storefront_base/*" "cartridges/bm_app_storefront_base/*" "cartridges/modules/*" \
+          Braincommerce-Integration-Guide.pdf
 
       - name: Upload Braincommerce artifact
         if: github.event_name != 'release' || env.ACT != 'true'
