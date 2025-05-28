@@ -17,8 +17,6 @@ int_brain_commerce:app_storefront_base
 
 1. Clone this repository. (The name of the top-level folder is int_brain_commerce.)
 2. In the top-level int_brain_commerce folder, enter the following command: `npm install`. (This command installs all of the package dependencies required for this integration.)
-3. In the top-level int_brain_commerce folder, edit the patch.base property in the package.json file. This property should contain a relative path to the local directory containing the Storefront Reference Architecture repository. For example:
-
 
 
 # Brain Commerce Cartridge Setup Guide
