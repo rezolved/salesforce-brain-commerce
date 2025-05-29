@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir -p build
           zip -r build/int_brain_commerce.zip . \
-          -x "node_modules/*" ".git/*" ".github/*" "test/*" \
+          -x "node_modules/*" ".git/*" ".github/*" \
           "cartridges/app_storefront_base/*" "cartridges/bm_app_storefront_base/*" "cartridges/modules/*"
 
       - name: Upload Braincommerce artifact
