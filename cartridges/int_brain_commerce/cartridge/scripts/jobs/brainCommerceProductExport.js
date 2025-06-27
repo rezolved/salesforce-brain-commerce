@@ -167,10 +167,12 @@ function createProductObject(product, listPriceBookId) {
 
     // Fetch product prices and currency
     var productPrices = getProductPrices(product, listPriceBookId);
+    if (productPrices.listPrice === 0 && productPrices.salePrice > 0) {
+        productPrices.listPrice = productPrices.salePrice;
+    }
     productData.price = productPrices.listPrice || 0;
     productData.sale_price = productPrices.salePrice || 0;
     productData.currency = productPrices.currency || defaultCurrency;
-
     // Fetch product availability status 'in_stock' or 'out_of_stock'
     productData.availability = productData.availability === 'IN_STOCK' ? 'in_stock' : 'out_of_stock';
 
@@ -259,7 +261,10 @@ function processProducts(products, isDeltaFeed, listPriceBookId) {
         var product = products.next();
 
         // Only process products that are type of product, master or variant
-        var eligibleProduct = product && (!product.isOptionProduct() && !product.isProductSet() && !product.isBundle() && !product.isVariationGroup()) && product.isOnline();
+        var eligibleProduct = product && (
+            (!product.isProductSet() && !product.isBundle() && !product.isVariationGroup())
+            || (product.isMaster() && product.isOptionProduct())
+        ) && product.isOnline();
         if (eligibleProduct) {
             if (isDeltaFeed) {
                 var isProductEligibletoExport = isProductEligibleForDeltaExport(product, listPriceBookId);
