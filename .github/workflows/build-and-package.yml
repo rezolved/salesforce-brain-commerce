@@ -1,0 +1,53 @@
+name: Build and Package Cartridge
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build JavaScript
+        run: npm run build
+
+      - name: Check release version matches cartridge version
+        run: |
+          RELEASE_VERSION=${{ github.event.release.tag_name }}
+          CARTRIDGE_VERSION=$(node -p "require('./cartridges/int_brain_commerce/package.json').version")
+          if [[ "$RELEASE_VERSION" != "$CARTRIDGE_VERSION" ]]; then
+            echo "Release version ($RELEASE_VERSION) does not match cartridge version ($CARTRIDGE_VERSION)"
+            exit 1
+          fi
+
+      - name: Package Braincommerce
+        run: |
+          mkdir -p build
+          zip -r build/int_brain_commerce.zip . \
+          -x "node_modules/*" ".git/*" ".github/*" \
+          "cartridges/app_storefront_base/*" "cartridges/bm_app_storefront_base/*" "cartridges/modules/*"
+
+      - name: Upload Braincommerce artifact
+        if: github.event_name != 'release' || env.ACT != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: int_brain_commerce.zip
+          path: build/int_brain_commerce.zip
+
+      - name: Attach ZIP to release
+        if: github.event_name == 'release' && env.ACT != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/int_brain_commerce.zip
