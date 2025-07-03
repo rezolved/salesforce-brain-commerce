@@ -9,7 +9,7 @@
             "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
             "function": "fullProductExport",
             "transactional": "true",
-            "timeout-in-seconds": "900",
+            "timeout-in-seconds": "14400",
             "parameters": {
                 "parameter": [
                     {
@@ -41,7 +41,7 @@
             "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceProductExport.js",
             "function": "deltaProductExport",
             "transactional": "true",
-            "timeout-in-seconds": "900",
+            "timeout-in-seconds": "14400",
             "parameters": {
                 "parameter": [
                     {
@@ -73,7 +73,7 @@
             "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceFaqExport.js",
             "function": "fullFaqExport",
             "transactional": "false",
-            "timeout-in-seconds": "900",
+            "timeout-in-seconds": "14400",
             "status-codes": {
                 "status": [{
                         "@code": "ERROR",
@@ -95,7 +95,7 @@
             "module": "int_brain_commerce/cartridge/scripts/jobs/brainCommerceFaqExport.js",
             "function": "deltaFaqExport",
             "transactional": "false",
-            "timeout-in-seconds": "900",
+            "timeout-in-seconds": "14400",
             "status-codes": {
                 "status": [{
                         "@code": "ERROR",
