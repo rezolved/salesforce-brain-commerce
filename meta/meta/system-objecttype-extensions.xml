@@ -53,6 +53,14 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceImageTypes">
+                <display-name xml:lang="x-default">Available Product Image Types CSV</display-name>
+                <type>string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+                <default-value>large,main</default-value>
+            </attribute-definition>
             <attribute-definition attribute-id="isBrainCommerceFrontendEnabled">
                 <display-name xml:lang="x-default">Is Conversation UI Enabled</display-name>
                 <type>boolean</type>
@@ -92,6 +100,7 @@
                 <attribute attribute-id="brainCommerceIngestorAPIUrl"/>
                 <attribute attribute-id="brainCommerceFAQCustomObjectID"/>
                 <attribute attribute-id="brainCommerceProductAttributeMapping"/>
+                <attribute attribute-id="brainCommerceImageTypes"/>
                 <attribute attribute-id="isBrainCommerceFrontendEnabled"/>
                 <attribute attribute-id="brainCommerceFrontendAPIKey"/>
                 <attribute attribute-id="brainCommerceFrontendAPIUrl"/>

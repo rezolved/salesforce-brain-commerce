@@ -16,6 +16,7 @@ var brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainComm
 var defaultCurrency = Site.current.getDefaultCurrency();
 var braincommerceProductLastExport;
 var productAttributes = brainCommerceConfigsHelpers.parseContent(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping'));
+var imageTypes = Site.current.getCustomPreferenceValue('brainCommerceImageTypes').split(',') || ['main', 'large'];
 var Transaction = require('dw/system/Transaction');
 
 /**
@@ -187,8 +188,15 @@ function createProductObject(product, listPriceBookId) {
     productData.link = product ? URLUtils.abs('Product-Show', 'pid', pid).toString() : '';
 
     // Fetch product image URL
-    var productImage = product && product.getImage ? product.getImage('large') : '';
-    productData.image_link = productImage ? productImage.absURL.toString() : '';
+    var productImage = '';
+    for (var i = 0; i < imageTypes.length; i += 1) {
+        var img = product.getImage(imageTypes[i]);
+        if (img && img.getAbsURL()) {
+            productImage = img.getAbsURL().toString();
+            break;
+        }
+    }
+    productData.image_link = productImage;
 
     return productData;
 }
