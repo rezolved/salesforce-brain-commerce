@@ -5,7 +5,7 @@
         <parameters/>
         <flow>
             <context site-id="RefArch"/>
-            <step step-id="BrainCommerceFullFaqExport" type="custom.fullFaqExport" enforce-restart="false">
+                <step step-id="BrainCommerceFullFaqExport" type="custom.fullFaqExport" enforce-restart="false">
                 <description/>
                 <parameters/>
             </step>
