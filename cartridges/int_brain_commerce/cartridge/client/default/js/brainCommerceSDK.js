@@ -1,8 +1,8 @@
 'use strict';
 
-$(window).on('load', function () {
-    var baseAPIURL = $('.brainCommerceSDKBaseAPIURL').val();
-    var apiKey = $('.brainCommerceSDKAPIKey').val();
+window.addEventListener('load', () => {
+    var baseAPIURL = document.querySelector('.brainCommerceSDKBaseAPIURL').value;
+    var apiKey = document.querySelector('.brainCommerceSDKAPIKey').value;
 
     // Check if base api url and api key exist
     if (!baseAPIURL || !apiKey) {
