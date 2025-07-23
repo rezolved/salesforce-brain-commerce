@@ -179,7 +179,11 @@ function createProductObject(product, listPriceBookId) {
     productData.availability = productData.availability === 'IN_STOCK' ? 'in_stock' : 'out_of_stock';
 
     // Fetch product parent ID for variants
-    if (product.isVariant()) {
+    var pid;
+
+    if (product.searchable) {
+        pid = product.ID;
+    } else if (product.isVariant()) {
         if (ingestVariationGroup) {
             const variationGroups = product.variationModel && product.variationModel.master
                 ? product.variationModel.master.getVariationGroups()
@@ -201,11 +205,14 @@ function createProductObject(product, listPriceBookId) {
                 if (foundGroup) break;
             }
 
+            pid = foundGroup ? foundGroup.ID : product.masterProduct.ID;
             productData.item_group_id = foundGroup ? foundGroup.ID : product.masterProduct.ID;
         } else {
+            pid = product.masterProduct.ID;
             productData.item_group_id = product.masterProduct.ID;
         }
     } else {
+        pid = product.ID;
         productData.item_group_id = '';
     }
 
@@ -213,7 +220,7 @@ function createProductObject(product, listPriceBookId) {
     productData.product_status = productData.product_status === true ? 'true' : 'false';
 
     // Fetch product URL
-    var pid = product.variant && !product.searchable ? product.masterProduct.ID : product.ID;
+
     productData.link = product ? URLUtils.abs('Product-Show', 'pid', pid).toString() : '';
 
     // Fetch product image URL
@@ -296,11 +303,10 @@ function processProducts(products, isDeltaFeed, listPriceBookId) {
 
     while (products.hasNext()) {
         var product = products.next();
-
         // Only process products that are type of product, master or variant
         var eligibleProduct = product && (
             (!product.isProductSet() && !product.isBundle() && (ingestVariationGroup || !product.isVariationGroup()))
-      || (product.isMaster() && product.isOptionProduct())
+          || (product.isMaster() && product.isOptionProduct())
         ) && product.isOnline();
         if (eligibleProduct) {
             if (isDeltaFeed) {
