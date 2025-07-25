@@ -17,6 +17,7 @@ var defaultCurrency = Site.current.getDefaultCurrency();
 var braincommerceProductLastExport;
 var productAttributes = brainCommerceConfigsHelpers.parseContent(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping'));
 var imageTypes = Site.current.getCustomPreferenceValue('brainCommerceImageTypes').split(',') || ['main', 'large'];
+var ingestVariationGroup = Site.current.getCustomPreferenceValue('ingestVariationGroup');
 var Transaction = require('dw/system/Transaction');
 
 /**
@@ -95,7 +96,7 @@ function getProductPrices(product, priceBookId) {
 
     // Get the list price for the product
     if (product.isMaster()) {
-        // Fetch the minimum list price from the product variants
+    // Fetch the minimum list price from the product variants
         collections.forEach(product.variants, function (variant) {
             let listPrice = variant.priceModel.getPriceBookPrice(priceBookId).value || 0;
             if (priceObj.listPrice === 0 || priceObj.listPrice > listPrice) {
@@ -151,17 +152,17 @@ function createProductObject(product, listPriceBookId) {
     });
 
     /**
-     * Fetch additional product data and formats it for the Brain Commerce service.
-     * 1. Category - comma separated list of category paths
-     * 2. Price - List Price
-     * 3. Sale Price - Sale Price
-     * 4. Currency - Currency Code
-     * 5. Availability - In Stock or Out of Stock
-     * 6. Item Group ID - Master product ID for variants
-     * 7. Product Status - Active or Inactive
-     * 8. Link - Product URL
-     * 9. Image Link - Product Image URL
-     */
+   * Fetch additional product data and formats it for the Brain Commerce service.
+   * 1. Category - comma separated list of category paths
+   * 2. Price - List Price
+   * 3. Sale Price - Sale Price
+   * 4. Currency - Currency Code
+   * 5. Availability - In Stock or Out of Stock
+   * 6. Item Group ID - Master product ID for variants
+   * 7. Product Status - Active or Inactive
+   * 8. Link - Product URL
+   * 9. Image Link - Product Image URL
+   */
 
     // Fetch product category paths
     productData.product_category = getProductCategories(categories);
@@ -178,18 +179,53 @@ function createProductObject(product, listPriceBookId) {
     productData.availability = productData.availability === 'IN_STOCK' ? 'in_stock' : 'out_of_stock';
 
     // Fetch product parent ID for variants
-    productData.item_group_id = product.variant ? product.masterProduct.ID : '';
+    var pid;
+
+    if (product.searchable) {
+        pid = product.ID;
+    } else if (product.isVariant()) {
+        if (ingestVariationGroup) {
+            const variationGroups = product.variationModel && product.variationModel.master
+                ? product.variationModel.master.getVariationGroups()
+                : [];
+
+            let foundGroup = null;
+
+            for (let k = 0; k < variationGroups.length; k += 1) {
+                var group = variationGroups[k];
+                var variants = group.getVariants();
+
+                for (var j = 0; j < variants.length; j += 1) {
+                    if (variants[j].ID === product.ID) {
+                        foundGroup = group;
+                        break;
+                    }
+                }
+
+                if (foundGroup) break;
+            }
+
+            pid = foundGroup ? foundGroup.ID : product.masterProduct.ID;
+            productData.item_group_id = foundGroup ? foundGroup.ID : product.masterProduct.ID;
+        } else {
+            pid = product.masterProduct.ID;
+            productData.item_group_id = product.masterProduct.ID;
+        }
+    } else {
+        pid = product.ID;
+        productData.item_group_id = '';
+    }
 
     // Fetch product status 'true' or 'false'
     productData.product_status = productData.product_status === true ? 'true' : 'false';
 
     // Fetch product URL
-    var pid = product.variant && !product.searchable ? product.masterProduct.ID : product.ID;
+
     productData.link = product ? URLUtils.abs('Product-Show', 'pid', pid).toString() : '';
 
     // Fetch product image URL
     var productImage = '';
-    for (var i = 0; i < imageTypes.length; i += 1) {
+    for (let i = 0; i < imageTypes.length; i += 1) {
         var img = product.getImage(imageTypes[i]);
         if (img && img.getAbsURL()) {
             productImage = img.getAbsURL().toString();
@@ -267,11 +303,10 @@ function processProducts(products, isDeltaFeed, listPriceBookId) {
 
     while (products.hasNext()) {
         var product = products.next();
-
         // Only process products that are type of product, master or variant
         var eligibleProduct = product && (
-            (!product.isProductSet() && !product.isBundle() && !product.isVariationGroup())
-            || (product.isMaster() && product.isOptionProduct())
+            (!product.isProductSet() && !product.isBundle() && (ingestVariationGroup || !product.isVariationGroup()))
+          || (product.isMaster() && product.isOptionProduct())
         ) && product.isOnline();
         if (eligibleProduct) {
             if (isDeltaFeed) {
@@ -283,9 +318,36 @@ function processProducts(products, isDeltaFeed, listPriceBookId) {
             }
 
             if (product) {
-                productsRequest.push(createProductObject(product, listPriceBookId));
-                productsToBeExported.push(product);
-                productsProcessedSuccessfully += 1;
+                var skipMasterProduct = false;
+
+                if (ingestVariationGroup && product.isMaster()) {
+                    var allVariants = product.getVariants();
+                    var variationGroups = product.variationModel.getVariationGroups();
+                    var groupedVariantIDs = new Set();
+
+                    for (var i = 0; i < variationGroups.length; i += 1) {
+                        var groupVariants = variationGroups[i].getVariants();
+                        for (var j = 0; j < groupVariants.length; j += 1) {
+                            groupedVariantIDs.add(groupVariants[j].ID);
+                        }
+                    }
+
+                    var allVariantsGrouped = true;
+                    for (var k = 0; k < allVariants.length; k += 1) {
+                        if (!groupedVariantIDs.has(allVariants[k].ID)) {
+                            allVariantsGrouped = false;
+                            break;
+                        }
+                    }
+
+                    skipMasterProduct = allVariantsGrouped;
+                }
+
+                if (!skipMasterProduct) {
+                    productsRequest.push(createProductObject(product, listPriceBookId));
+                    productsToBeExported.push(product);
+                    productsProcessedSuccessfully += 1;
+                }
 
                 // Add master product also in the list if the product is a variant and it's delta feed
                 if (isDeltaFeed && product.isVariant() && !isProductEligibleForDeltaExport(product.masterProduct, listPriceBookId)) {
@@ -389,7 +451,7 @@ function fullProductExport(parameters) {
     }
 
     try {
-        // Query all site products
+    // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
         if (productAttributes) {
             var result = processProducts(allProducts, false, listPriceBookId);
@@ -474,14 +536,14 @@ function deltaProductExport(parameters) {
     }
 
     try {
-        // Delete products mentioned in the delete list in Brain Commerce custom object
+    // Delete products mentioned in the delete list in Brain Commerce custom object
         deleteProductsFromBrainCommerce();
     } catch (error) {
         Logger.error('Error while deleting products from Brain Commerce: {0}', error.message);
     }
 
     try {
-        // Query all site products
+    // Query all site products
         var allProducts = ProductMgr.queryAllSiteProducts();
         if (productAttributes) {
             var result = processProducts(allProducts, true, listPriceBookId);
