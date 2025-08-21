@@ -88,7 +88,7 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <min-length>0</min-length>
-                <default-value>https://storage.googleapis.com/brain-commerce-static-eu-dev/rezolve-chatbot.js</default-value>
+                <default-value>https://storage.googleapis.com/brain-commerce-static-eu-dev/rezolve-sdk-v2.umd.js</default-value>
             </attribute-definition>
 
         </custom-attribute-definitions>
