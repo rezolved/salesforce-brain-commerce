@@ -17,10 +17,11 @@ window.addEventListener('load', () => {
                 apiKey: apiKey
             });
         } else if (attempts < maxAttempts) {
-            console.warn(`RezolveSDK not available yet, retrying (${attempts + 1}/${maxAttempts})...`);
             setTimeout(() => initRezolveChat(attempts + 1, maxAttempts, interval), interval);
         } else {
+            /* eslint-disable no-console */
             console.error('RezolveSDK is not available after max attempts. Stopping retries.');
+            /* eslint-enable no-console */
         }
     }
 
