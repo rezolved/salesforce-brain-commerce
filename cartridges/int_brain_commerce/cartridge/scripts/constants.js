@@ -32,7 +32,10 @@ base = {
         };
     },
     BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_ID: 'brainCommerceConfigs',
-    BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_RECORD_ID: 'brainCommerceConfigKey'
+    BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_RECORD_ID: 'brainCommerceConfigKey',
+    REZOLVE_SNPD_CONFIG_CUSTOM_OBJECT_ID: 'rzlvSnpdConfigs',
+    REZOLVE_SNPD_CONFIG_CUSTOM_OBJECT_RECORD_ID: 'rzlvSnpdConfigKey',
+    REZOLVE_INGESTION_TASK_CUSTOM_OBJECT_ID: 'rezolveIngestionTask',
 };
 
 module.exports = base;

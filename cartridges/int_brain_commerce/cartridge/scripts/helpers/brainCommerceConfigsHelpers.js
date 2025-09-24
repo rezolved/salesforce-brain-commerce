@@ -84,6 +84,24 @@ function getBrainCommerceProductsLastExportTime() {
 }
 
 /**
+ * Retrieves the last successful baseline run timestamp from site preferences.
+ *
+ * @returns {Date|null} The last successful baseline run timestamp if available, otherwise null.
+ */
+function getLastSuccessfulBaselineRun() {
+    return Site.current.getCustomPreferenceValue('lastSuccessfulBaselineRun');
+}
+
+/**
+ * Retrieves the last successful incremental run timestamp from site preferences.
+ *
+ * @returns {Date|null} The last successful incremental run timestamp if available, otherwise null.
+ */
+function getLastSuccessfulIncrementalRun() {
+    return Site.current.getCustomPreferenceValue('lastSuccessfulIncrementalRun');
+}
+
+/**
  * Retrieves the last FAQs export timestamp from the Brain Commerce custom object.
  *
  * @returns {string|null} The last FAQs export timestamp if available, otherwise null.
@@ -92,6 +110,28 @@ function getBrainCommerceFAQsLastExportTime() {
     var brainCommerceProductCustomObject = getCurentOrNewBrainCommerceCOConfigs();
     var braincommerceProductLastExport = brainCommerceProductCustomObject && brainCommerceProductCustomObject.custom.faqLastExport;
     return braincommerceProductLastExport;
+}
+
+/**
+ * Updates the last incremental product run timestamp in the Rezolve Snpd configurations.
+ *
+ * @param {Date} timestamp - The timestamp to set as the last product export time.
+ */
+function updateLastIncrementalRun(timestamp) {
+    Transaction.wrap(function () {
+        Site.current.setCustomPreferenceValue('lastSuccessfulIncrementalRun', timestamp);
+    });
+}
+
+/**
+ * Updates the last baseline product run timestamp in the Rezolve Snpd configurations.
+ *
+ * @param {Date} timestamp - The timestamp to set as the last product export time.
+ */
+function updateLastBaselineRun(timestamp) {
+    Transaction.wrap(function () {
+        Site.current.setCustomPreferenceValue('lastSuccessfulBaselineRun', timestamp);
+    });
 }
 
 /**
@@ -142,7 +182,12 @@ function getProductAvailabilityAndPriceStatus(product, listPriceBookId) {
     availabilityAndPriceStatus.push(availability);
 
     // Get product list price
-    var listPrice = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
+    let listPrice = 0;
+    if (product.priceModel) {
+        listPrice = product.priceModel.getPriceBookPrice(listPriceBookId).value || 0;
+    } else {
+        Logger.warn('Product {0} has no price model', product.ID);
+    }
     availabilityAndPriceStatus.push(listPrice);
 
     // Get product sale price
@@ -156,15 +201,16 @@ function getProductAvailabilityAndPriceStatus(product, listPriceBookId) {
  * Compares the product inventory record with the stored data if the time comparison fails.
  * @param {dw.catalog.Product} product - The product object
  * @param {string} listPriceBookId - The list price book ID
- * @returns {void} true if the product was updated, false otherwise
+ * @param {string} priceInventoryAttribute - The custom attribute name to store the last exported price and inventory data
+ * @returns {boolean} true if the product was updated, false otherwise
  */
-function compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId) {
-    var isProductUpdated = false;
+function compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId, priceInventoryAttribute) {
+    let isProductUpdated = false;
     if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
-        var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
-        var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory;
-        var parsedObject = parseContent(productData);
-        var storedData = Object.prototype.hasOwnProperty.call(parsedObject, currentSite) ? parsedObject[currentSite] : '';
+        const productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
+        const productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom[priceInventoryAttribute];
+        const parsedObject = parseContent(productData);
+        const storedData = Object.prototype.hasOwnProperty.call(parsedObject, currentSite) ? parsedObject[currentSite] : '';
         isProductUpdated = storedData !== productAvailabilityAndPriceStatus;
     } else if (product && !product.isMaster()) {
         Logger.info('Skipping product from delta {0} as the product inventory record is missing!', product.ID);
@@ -177,16 +223,17 @@ function compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId) {
  * Updates the inventory record with the product availability and price status when the product is successfully sent to Brain Commerce.
  * @param {dw.catalog.Product} product - The product object
  * @param {string} listPriceBookId - The list price book ID
+ * @param {string} priceInventoryAttribute - The custom attribute name to store the last exported price and inventory data
  * @returns {void}
  */
-function updateInventoryRecordOnSuccessResponse(product, listPriceBookId) {
-    var productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
+function updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryAttribute) {
+    const productAvailabilityAndPriceStatus = getProductAvailabilityAndPriceStatus(product, listPriceBookId);
     if (product.availabilityModel && product.availabilityModel.inventoryRecord) {
-        var productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory;
-        var parsedObject = parseContent(productData);
+        const productData = product.availabilityModel.inventoryRecord.custom && product.availabilityModel.inventoryRecord.custom[priceInventoryAttribute];
+        const parsedObject = parseContent(productData);
         parsedObject[currentSite] = productAvailabilityAndPriceStatus;
         Transaction.wrap(function () {
-            product.availabilityModel.inventoryRecord.custom.brainCommerceLastExportedPriceAndInventory = JSON.stringify(parsedObject);
+            product.availabilityModel.inventoryRecord.custom[priceInventoryAttribute] = JSON.stringify(parsedObject);
         });
     }
 }
@@ -194,6 +241,10 @@ function updateInventoryRecordOnSuccessResponse(product, listPriceBookId) {
 module.exports = {
     getCurentOrNewBrainCommerceCOConfigs: getCurentOrNewBrainCommerceCOConfigs,
     getBrainCommerceProductsLastExportTime: getBrainCommerceProductsLastExportTime,
+    getLastSuccessfulBaselineRun: getLastSuccessfulBaselineRun,
+    getLastSuccessfulIncrementalRun: getLastSuccessfulIncrementalRun,
+    updateLastIncrementalRun: updateLastIncrementalRun,
+    updateLastBaselineRun: updateLastBaselineRun,
     getBrainCommerceFAQsLastExportTime: getBrainCommerceFAQsLastExportTime,
     updateProductExportTimestampInBrainCommerceCOConfigs: updateProductExportTimestampInBrainCommerceCOConfigs,
     updateFAQExportTimestampInBrainCommerceCOConfigs: updateFAQExportTimestampInBrainCommerceCOConfigs,

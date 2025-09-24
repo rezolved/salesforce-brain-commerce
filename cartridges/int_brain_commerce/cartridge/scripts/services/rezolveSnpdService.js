@@ -1,8 +1,10 @@
 'use strict';
 
-var LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
-var Site = require('dw/system/Site');
-var Logger = require('dw/system/Logger');
+const LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
+const Site = require('dw/system/Site');
+const Logger = require('dw/system/Logger');
+const File = require('dw/io/File');
+const HTTPRequestPart = require('dw/net/HTTPRequestPart');
 // const Status = require('dw/svc/Status');
 
 /**
@@ -28,38 +30,42 @@ const RezolveSnpdService = {
 
                 // Set headers according to expected API contract
                 if (Site.current.getCustomPreferenceValue('rezolveClientKey')) {
-                    Logger.info('Client Key: {0}', Site.current.getCustomPreferenceValue('rezolveClientKey'));
                     svc.addHeader('Authorization', 'client-key ' + Site.current.getCustomPreferenceValue('rezolveClientKey'));
                 }
                 if (Site.current.getCustomPreferenceValue('rezolveCustomerId')) {
-                    Logger.info('Customer Id: {0}', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
                     svc.addHeader('X-Groupby-Customer-Id', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
                 }
 
-                // For GET requests, don't send multipart body; set Accept header
                 if (method === 'GET') {
                     svc.addHeader('Accept', 'application/json');
                     return null;
                 }
 
-                // For non-GET, send multipart/form-data body
-                const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
-                svc.addHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
-
-                let body = '';
                 const fields = params && params.requestBody ? params.requestBody : {};
-                const keys = Object.keys(fields);
+                const requestParts = [];
 
-                keys.forEach(function (key) {
-                    body += '--' + boundary + '\r\n';
-                    body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
-                    body += 'Content-Type: text/plain\r\n\r\n';
-                    body += String(fields[key]) + '\r\n';
+                Object.keys(fields).forEach(function (key) {
+                    if (key === 'catalog') {
+                        if (typeof fields[key] === 'string') {
+                            const file = new File(fields[key]);
+                            if (file.exists()) {
+                                requestParts.push(new HTTPRequestPart(key, file));
+                                Logger.info('Added file part for catalog: {0}', file.getFullPath());
+                            } else {
+                                Logger.error('Catalog file does not exist: {0}', fields[key]);
+                                requestParts.push(new HTTPRequestPart(key, String(fields[key])));
+                            }
+                        } else if (fields[key] instanceof File) {
+                            requestParts.push(new HTTPRequestPart(key, fields[key]));
+                            Logger.info('Added file object part for catalog: {0}', fields[key].getFullPath());
+                        } else {
+                            requestParts.push(new HTTPRequestPart(key, String(fields[key])));
+                        }
+                    } else {
+                        requestParts.push(new HTTPRequestPart(key, String(fields[key]), 'UTF-8'));
+                    }
                 });
-
-                body += '--' + boundary + '--\r\n';
-
-                return body;
+                return requestParts;
             },
 
             parseResponse: function (svc, response) {
@@ -73,7 +79,7 @@ const RezolveSnpdService = {
                         success: true,
                         statusCode: statusCode,
                         data: responseText ? JSON.parse(responseText) : null,
-                        message: 'Request completed 3333 successfully'
+                        message: 'Request completed successfully'
                     };
                 }
                 if (statusCode >= 400 && statusCode < 500) {
@@ -143,13 +149,21 @@ const RezolveSnpdService = {
 
             const service = this.getService();
 
-            const requestBody = params.requestBody || {
-                taskType: params.taskType,
-                data: params.data || {},
-                options: params.options || {},
-                timestamp: new Date().toISOString()
-            };
-            Logger.info('Authentication Type2 : {0}', service.getAuthentication());
+            let requestBody;
+            if (params.requestBody) {
+                requestBody = params.requestBody;
+            } else {
+                requestBody = {};
+                if (params.data) {
+                    Object.keys(params.data).forEach(function (key) {
+                        requestBody[key] = params.data[key];
+                    });
+                }
+                requestBody.taskType = params.taskType;
+                requestBody.options = params.options || {};
+                requestBody.timestamp = new Date().toISOString();
+            }
+            Logger.info('Authentication Type : {0}', service.getAuthentication());
             const result = service.call({
                 requestBody: requestBody,
                 endPointConfigs: { method: 'POST', endPoint: '/api/tasks' }

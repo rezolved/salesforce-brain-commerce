@@ -7,8 +7,17 @@ const brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCo
 const defaultCurrency = Site.current.getDefaultCurrency();
 const URLUtils = require('dw/web/URLUtils');
 const mappingConfigValue = Site.current.getCustomPreferenceValue('brainCommerceSnpdProductAttributeMapping');
+const collectionName = Site.current.getCustomPreferenceValue('rezolveCollectionName');
 const mappingConfig = brainCommerceConfigsHelpers.parseContent(mappingConfigValue || '{}');
 const locale = require('dw/util/Locale');
+const CustomObjectMgr = require('dw/object/CustomObjectMgr');
+const Transaction = require('dw/system/Transaction');
+const constants = require('*/cartridge/scripts/constants');
+const priceInventoryDataAttr = 'rzlvLastExportedPriceAndInventory';
+const File = require('dw/io/File');
+const FileWriter = require('dw/io/FileWriter');
+let rzlvSnpdBaselineLastRun;
+let rzlvSnpdPartialLastRun;
 
 /**
  * Retrieves the price book ID for the default currency.
@@ -86,7 +95,8 @@ function getProductCategories(categories) {
 
         pathList.push(categoryPath.reverse().join('/'));
     }
-    return pathList.join(',');
+    const result = pathList.join(',');
+    return result === '' ? '-' : result;
 }
 
 /**
@@ -111,12 +121,14 @@ function getProductPrices(product, priceBookId) {
     if (product.isMaster()) {
         // Fetch the minimum list price from the product variants
         collections.forEach(product.variants, function (variant) {
-            let listPrice = variant.priceModel.getPriceBookPrice(priceBookId).value || 0;
-            if (priceObj.listPrice === 0 || priceObj.listPrice > listPrice) {
-                priceObj.listPrice = listPrice;
+            if (variant.priceModel) {
+                let listPrice = variant.priceModel.getPriceBookPrice(priceBookId).value || 0;
+                if (priceObj.listPrice === 0 || priceObj.listPrice > listPrice) {
+                    priceObj.listPrice = listPrice;
+                }
             }
         });
-    } else {
+    } else if (product.priceModel) {
         const listPrice = product.priceModel.getPriceBookPrice(priceBookId);
         priceObj.listPrice = (listPrice && listPrice.value) || 0;
 
@@ -143,6 +155,7 @@ function getProductPrices(product, priceBookId) {
 function createProductObject(product, listPriceBookId) {
     const productData = {};
     const categories = product.categories;
+    const arrayAttributes = ['brands', 'tags', 'colors', 'sizes', 'materials'];
 
     if (!product) {
         return productData;
@@ -153,7 +166,14 @@ function createProductObject(product, listPriceBookId) {
             if (baseDataItem.systemAttributes && Array.isArray(baseDataItem.systemAttributes)) {
                 baseDataItem.systemAttributes.forEach(function (attribute) {
                     if (attribute && attribute.snpdAttr && attribute.sfccAttr) {
-                        productData[attribute.snpdAttr] = getAttributeValue(product, attribute, false);
+                        let value = getAttributeValue(product, attribute, false);
+                        if (attribute.snpdAttr === 'brands' && (!value || value === '')) {
+                            value = '-';
+                        }
+                        if (arrayAttributes.indexOf(attribute.snpdAttr) !== -1 && typeof value === 'string') {
+                            value = [value];
+                        }
+                        productData[attribute.snpdAttr] = value;
                     }
                 });
             }
@@ -161,7 +181,11 @@ function createProductObject(product, listPriceBookId) {
             if (baseDataItem.customAttributes && Array.isArray(baseDataItem.customAttributes)) {
                 baseDataItem.customAttributes.forEach(function (attribute) {
                     if (attribute && attribute.snpdAttr && attribute.sfccAttr) {
-                        productData[attribute.snpdAttr] = getAttributeValue(product, attribute, true);
+                        let value = getAttributeValue(product, attribute, true);
+                        if (arrayAttributes.indexOf(attribute.snpdAttr) !== -1 && typeof value === 'string') {
+                            value = [value];
+                        }
+                        productData[attribute.snpdAttr] = value;
                     }
                 });
             }
@@ -169,13 +193,22 @@ function createProductObject(product, listPriceBookId) {
     }
 
     if (mappingConfig.attributes && Array.isArray(mappingConfig.attributes)) {
-        productData.attributes = {};
+        productData.attributes = [];
 
         mappingConfig.attributes.forEach(function (attributeItem) {
             if (attributeItem.systemAttributes && Array.isArray(attributeItem.systemAttributes)) {
                 attributeItem.systemAttributes.forEach(function (attribute) {
                     if (attribute && attribute.snpdAttr && attribute.sfccAttr) {
-                        productData.attributes[attribute.snpdAttr] = getAttributeValue(product, attribute, false);
+                        let value = getAttributeValue(product, attribute, false);
+                        if (arrayAttributes.indexOf(attribute.snpdAttr) !== -1 && typeof value === 'string') {
+                            value = [value];
+                        }
+                        productData.attributes.push({
+                            key: attribute.snpdAttr,
+                            value: {
+                                text: Array.isArray(value) ? value : [value]
+                            }
+                        });
                     }
                 });
             }
@@ -183,7 +216,16 @@ function createProductObject(product, listPriceBookId) {
             if (attributeItem.customAttributes && Array.isArray(attributeItem.customAttributes)) {
                 attributeItem.customAttributes.forEach(function (attribute) {
                     if (attribute && attribute.snpdAttr && attribute.sfccAttr) {
-                        productData.attributes[attribute.snpdAttr] = getAttributeValue(product, attribute, true);
+                        let value = getAttributeValue(product, attribute, true);
+                        if (arrayAttributes.indexOf(attribute.snpdAttr) !== -1 && typeof value === 'string') {
+                            value = [value];
+                        }
+                        productData.attributes.push({
+                            key: attribute.snpdAttr,
+                            value: {
+                                text: Array.isArray(value) ? value : [value]
+                            }
+                        });
                     }
                 });
             }
@@ -193,16 +235,20 @@ function createProductObject(product, listPriceBookId) {
     /** Add Additional Product Data * */
 
     // Fetch product category paths
-    productData.categories = getProductCategories(categories);
+    productData.categories = [getProductCategories(categories)];
 
     // Fetch product prices and currency
     const productPrices = getProductPrices(product, listPriceBookId);
     if (productPrices.listPrice === 0 && productPrices.salePrice > 0) {
         productPrices.listPrice = productPrices.salePrice;
     }
-    productData.price = productPrices.listPrice || 0;
-    productData.sale_price = productPrices.salePrice || 0;
-    productData.currency = productPrices.currency || defaultCurrency;
+
+    productData.priceInfo = {
+        currencyCode: productPrices.currency || defaultCurrency,
+        price: productPrices.salePrice || productPrices.listPrice || 0,
+        originalPrice: productPrices.listPrice || 0,
+        cost: 0
+    };
 
     // Fetch product availability status according to Vertex AI Product Resource
     let availability = 'OUT_OF_STOCK'; // Default to out of stock
@@ -306,28 +352,61 @@ function createProductObject(product, listPriceBookId) {
     return productData;
 }
 
-// eslint-disable-next-line valid-jsdoc
 /**
- * Sends a batch of products to the Brain Commerce service.
- * @param {Array} productsRequest product request object
- * @param {Array} productsToBeExported product to be exported to Brain Commerce
- * @param {string} listPriceBookId list price book ID
+ * Writes products data to a temporary file and returns the file path
+ * @param {Array} productsRequest - Array of product objects
+ * @returns {string} - Path to the created file
  */
-function sendRequest(productsRequest, productsToBeExported, listPriceBookId) {
-    const rzlvSnpdService = require('*/cartridge/scripts/services/rezolveSnpdService');
-    Logger.info('Sending ' + productsRequest.length + ' products to Brain Commerce service.');
+function writeProductsToFile(productsRequest) {
+    const impexDir = File.getRootDirectory(File.IMPEX);
+    const catalogDir = new File(impexDir, 'rzlv/catalog');
+
+    if (!catalogDir.exists()) {
+        catalogDir.mkdirs();
+    }
+
+    const fileName = 'rezolve_products_' + new Date().getTime() + '.jsonld';
+    const file = new File(catalogDir, fileName);
 
     try {
-        let ndjsonData = '';
+        const fileWriter = new FileWriter(file, 'UTF-8');
+
         productsRequest.forEach(function (product) {
-            ndjsonData += JSON.stringify(product) + '\n';
+            const productJson = JSON.stringify(product);
+            fileWriter.writeLine(productJson);
         });
+
+        fileWriter.close();
+        Logger.info('Products data written to file: {0}', file.getFullPath());
+        return file.getFullPath();
+    } catch (error) {
+        Logger.error('Error writing products to file: {0}', error.message);
+        throw error;
+    }
+}
+
+// eslint-disable-next-line valid-jsdoc
+/**
+ * Sends a batch of products to the Rezolve SNPD service.
+ * @param {Array} productsRequest product request object
+ * @param {Array} productsToBeExported product to be exported to Rezolve SNPD
+ * @param {string} listPriceBookId list price book ID
+ * @param {string} uploadType The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
+ * @param {string} jobID The execution ID of the job
+ */
+function sendRequest(productsRequest, productsToBeExported, listPriceBookId, uploadType, jobID) {
+    const rzlvSnpdService = require('*/cartridge/scripts/services/rezolveSnpdService');
+    Logger.info('Sending ' + productsRequest.length + ' products to Rezolve SNPD service.');
+
+    try {
+        const tempFilePath = writeProductsToFile(productsRequest);
+        // Use binary file upload instead of string content
         const requestBody = {
-            collection: 'Production',
-            indexerUploadType: 'BASELINE',
+            collection: collectionName,
+            indexerUploadType: uploadType,
             failureCountThreshold: 1000,
             timeoutMinutes: 100,
-            catalog: ndjsonData
+            catalog: tempFilePath
         };
 
         const response = rzlvSnpdService.initiateTask({
@@ -336,17 +415,21 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId) {
             options: {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'multipart/form-data'
                 }
             }
         });
 
         if (!(response && response.success)) {
-            Logger.error('Error in Brain commerce product ingestion service: {0}', response && response.error && response.error.message);
+            Logger.error('Error in Rezolve SNPD product ingestion service: {0}', response && response.error && response.error.message);
             return false;
         }
-
-        Logger.info('Successfully sent ' + productsRequest.length + ' products to Brain Commerce service.');
+        // eslint-disable-next-line no-use-before-define
+        createIngestionTask(uploadType, response, jobID);
+        productsToBeExported.forEach(function (product) {
+            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
+        });
+        Logger.info('Successfully sent ' + productsRequest.length + ' products to Rezolve SNPD service.');
         return true;
     } catch (error) {
         Logger.error('Error sending catalog data: {0}', error.message);
@@ -355,27 +438,107 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId) {
 }
 
 /**
+ * Creates a rezolveIngestionTask custom object with the provided data.
+ * @param {string} uploadType - The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
+ * @param {Object} response - The response object containing task information
+ * @param {string} jobID - The execution ID of the job
+ */
+function createIngestionTask(uploadType, response, jobID) {
+    try {
+        const taskId = response.data && response.data.id ? response.data.id : null;
+        const currentStage = response.data && response.data.currentStage ? response.data.currentStage : 'INITIATED';
+
+        if (!taskId) {
+            Logger.error('No task ID found in response, cannot create ingestion task');
+            return;
+        }
+
+        Transaction.wrap(function () {
+            const ingestionTask = CustomObjectMgr.createCustomObject(
+                constants.REZOLVE_INGESTION_TASK_CUSTOM_OBJECT_ID,
+                taskId
+            );
+
+            ingestionTask.custom.sfccJobExecutionID = jobID;
+            ingestionTask.custom.taskID = taskId;
+            ingestionTask.custom.jobType = uploadType;
+            ingestionTask.custom.currentStage = currentStage;
+            ingestionTask.custom.status = currentStage;
+            ingestionTask.custom.submittedAt = new Date();
+            ingestionTask.custom.lastCheckedAt = new Date();
+
+            Logger.info('Created rezolveIngestionTask with ID: {0}', taskId);
+        });
+    } catch (error) {
+        Logger.error('Error creating rezolveIngestionTask: {0}', error.message);
+    }
+}
+
+/**
+ * Checks if the product is eligible for delta export
+ * @param {dw.catalog.Product} product Product Object
+ * @param {string} listPriceBookId list price book ID
+ * @returns {boolean} true if product is eligible for delta export, false otherwise
+ */
+function isProductEligibleForDeltaExport(product, listPriceBookId) {
+    if (!product) {
+        return false;
+    }
+
+    // Check if the product is updated after last export
+    const productLastModified = new Date(product.getLastModified());
+    const lastExport = (rzlvSnpdPartialLastRun && new Date(rzlvSnpdPartialLastRun)) || null;
+    let isProductUpdated = lastExport && productLastModified > lastExport;
+
+    // Check if the product availability or price status has changed
+    if (!isProductUpdated) {
+        isProductUpdated = brainCommerceConfigsHelpers.compareInventoryRecordIfTimeComarisonFails(
+            product,
+            listPriceBookId,
+            priceInventoryDataAttr
+        );
+    }
+
+    return isProductUpdated;
+}
+
+/**
  * Processes a collection of products, filtering based on modification time and online status,
- * then sends batched product data to the Brain commerce service.
+ * then sends batched product data to the Rezolve SNPD service.
  *
  * @param {Object} products - An iterator of product objects.
  * @param {boolean} isDeltaFeed - Whether to process only recently modified products.
- *  @param {string} listPriceBookId - The ID of the price book to fetch product prices.
+ * @param {string} listPriceBookId - The ID of the price book to fetch product prices.
+ * @param {string} uploadType - The type of upload (e.g., 'BASELINE', 'PARTIAL').
+ * @param {string} jobID - The execution ID of the job.
  * @returns {Object} - Returns data related to process such as number of successfully processed products.
  */
-function processProducts(products, isDeltaFeed, listPriceBookId) {
-    var productsRequest = [];
-    var productsToBeExported = [];
-    var productsProcessedSuccessfully = 0;
+function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, jobID) {
+    const productsRequest = [];
+    const productsToBeExported = [];
+    let productsProcessedSuccessfully = 0;
+
+    let test = 0;
 
     while (products.hasNext()) {
-        const product = products.next();
+        let product = products.next();
         // Only process products that are type of product, master or variant
         const eligibleProduct = product && (
             (!product.isProductSet() && !product.isBundle())
             || (product.isMaster() && product.isOptionProduct())
         ) && product.isOnline();
         if (eligibleProduct) {
+            if (isDeltaFeed) {
+                const isProductEligibletoExport = isProductEligibleForDeltaExport(product, listPriceBookId);
+                // Do not send the product if it was updated before updated after last export
+                if (!isProductEligibletoExport) {
+                    product = null;
+                }
+                test += 1;
+                if (test >= 5) {
+                    break;
+                }
+            }
             if (product) {
                 let skipMasterProduct = false;
 
@@ -414,27 +577,13 @@ function processProducts(products, isDeltaFeed, listPriceBookId) {
                     productsToBeExported.push(product.masterProduct);
                     productsProcessedSuccessfully += 1;
                 }
-
-                // Send products in chunk size and reset the list
-                if (productsRequest.length >= 10) {
-                    if (!sendRequest(productsRequest, productsToBeExported, listPriceBookId)) {
-                        return {
-                            productsProcessedSuccessfully: productsProcessedSuccessfully
-                        };
-                    }
-                    productsRequest = [];
-                    productsToBeExported = [];
-                    return {
-                        productsProcessedSuccessfully: productsProcessedSuccessfully
-                    };
-                }
             }
         }
     }
 
     // Send the remaining product in the list
     if (productsRequest.length > 0) {
-        if (!sendRequest(productsRequest, productsToBeExported, listPriceBookId)) {
+        if (!sendRequest(productsRequest, productsToBeExported, listPriceBookId, uploadType, jobID)) {
             return {
                 productsProcessedSuccessfully: productsProcessedSuccessfully
             };
@@ -450,14 +599,16 @@ function processProducts(products, isDeltaFeed, listPriceBookId) {
 /**
  * Baseline ingestion function.
  * @param {Object} parameters - Parameters for the job.@param parameters
+ * @param {string} jobID - The execution ID of the job
  */
-function baselineIngestion(parameters) {
+function baselineIngestion(parameters, jobID) {
     Logger.info('***** Baseline Product Export Job Started *****');
-
+    const jobStartTime = new Date();
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-
+    rzlvSnpdBaselineLastRun = brainCommerceConfigsHelpers.getLastSuccessfulBaselineRun();
     try {
-        processProducts(ProductMgr.queryAllSiteProducts(), false, listPriceBookId);
+        processProducts(ProductMgr.queryAllSiteProducts(), false, listPriceBookId, 'BASELINE', jobID);
+        brainCommerceConfigsHelpers.updateLastBaselineRun(jobStartTime);
     } catch (error) {
         Logger.error('Error in Full Product Export Job: {0}', error.message);
     }
@@ -466,27 +617,37 @@ function baselineIngestion(parameters) {
 
 /**
  * Partial ingestion function.
+ * @param {Object} parameters - Parameters for the job.@param parameters
+ * @param {string} jobID - The execution ID of the job
  */
-function partialIngestion() {
+function partialIngestion(parameters, jobID) {
+    const jobStartTime = new Date();
     Logger.info('***** Partial Product Export Job Started *****');
-    const siteID = Site.getCurrent().getID();
-    Logger.info('Partial Ingestion - Site ID: ' + siteID);
+    const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
+    rzlvSnpdPartialLastRun = brainCommerceConfigsHelpers.getLastSuccessfulIncrementalRun();
+    try {
+        processProducts(ProductMgr.queryAllSiteProducts(), true, listPriceBookId, 'PARTIAL', jobID);
+        brainCommerceConfigsHelpers.updateLastIncrementalRun(jobStartTime);
+    } catch (error) {
+        Logger.error('Error in Full Product Export Job: {0}', error.message);
+    }
     Logger.info('***** Partial Product Export Job Finished *****');
 }
 
 /**
  * Extract and submit product data to Rezolve SNPd.
  * @param {Object} parameters - Parameters for the job.@param parameters
+ * @param {Object} jobExecution - JobExecution object
  * @returns {Status} Status object indicating job completion.
  */
-function extractAndSubmit(parameters) {
+function extractAndSubmit(parameters, jobExecution) {
     if (parameters.indexerUploadType) {
         switch (parameters.indexerUploadType) {
             case 'BASELINE':
-                baselineIngestion(parameters);
+                baselineIngestion(parameters, jobExecution.getID());
                 break;
             case 'PARTIAL_CATALOG':
-                partialIngestion();
+                partialIngestion(parameters, jobExecution.getID());
                 break;
             default:
                 Logger.error('Invalid indexerUploadType parameter: ' + parameters.indexerUploadType);
