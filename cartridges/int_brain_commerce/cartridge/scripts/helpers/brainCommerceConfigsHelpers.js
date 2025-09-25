@@ -26,6 +26,29 @@ function getCurentOrNewBrainCommerceCOConfigs() {
 }
 
 /**
+ * Fetches the Brain Commerce custom object configurations or creates a new one if not available.
+ *
+ * @returns {dw.object.CustomObject} The Brain Commerce custom object.
+ */
+function getCurentOrNewRzlvCOConfigs() {
+    var rzlvSnpdCOConfigs = CustomObjectMgr.getCustomObject(
+        constants.REZOLVE_SNPD_CONFIG_CUSTOM_OBJECT_ID,
+        constants.REZOLVE_SNPD_CONFIG_CUSTOM_OBJECT_RECORD_ID
+    );
+
+    if (!rzlvSnpdCOConfigs) {
+        Transaction.wrap(function () {
+            rzlvSnpdCOConfigs = CustomObjectMgr.createCustomObject(
+                constants.REZOLVE_SNPD_CONFIG_CUSTOM_OBJECT_ID,
+                constants.REZOLVE_SNPD_CONFIG_CUSTOM_OBJECT_RECORD_ID
+            );
+        });
+    }
+
+    return rzlvSnpdCOConfigs;
+}
+
+/**
  * Tries to parse a given string as a JSON object. If the parsing is successful, the parsed object is returned.
  * If the parsing fails, null is returned.
  * @param {string} stringData - The string to parse.
@@ -84,21 +107,14 @@ function getBrainCommerceProductsLastExportTime() {
 }
 
 /**
- * Retrieves the last successful baseline run timestamp from site preferences.
+ * Retrieves the last product export timestamp from the Rezolve SNPD custom object.
  *
- * @returns {Date|null} The last successful baseline run timestamp if available, otherwise null.
+ * @returns {string|null} The last product export timestamp if available, otherwise null.
  */
-function getLastSuccessfulBaselineRun() {
-    return Site.current.getCustomPreferenceValue('lastSuccessfulBaselineRun');
-}
-
-/**
- * Retrieves the last successful incremental run timestamp from site preferences.
- *
- * @returns {Date|null} The last successful incremental run timestamp if available, otherwise null.
- */
-function getLastSuccessfulIncrementalRun() {
-    return Site.current.getCustomPreferenceValue('lastSuccessfulIncrementalRun');
+function getRzlvProductsLastExportTime() {
+    const rzlvSnpdProductCustomObject = getCurentOrNewRzlvCOConfigs();
+    const rzlvSnpdProductLastExport = rzlvSnpdProductCustomObject && rzlvSnpdProductCustomObject.custom.productLastExport;
+    return rzlvSnpdProductLastExport;
 }
 
 /**
@@ -141,6 +157,21 @@ function updateLastBaselineRun(timestamp) {
  */
 function updateProductExportTimestampInBrainCommerceCOConfigs(timestamp) {
     var brainCommerceCOConfigs = getCurentOrNewBrainCommerceCOConfigs();
+
+    if (brainCommerceCOConfigs) {
+        Transaction.wrap(function () {
+            brainCommerceCOConfigs.custom.productLastExport = timestamp;
+        });
+    }
+}
+
+/**
+ * Updates the last product export timestamp in the Brain Commerce custom object configurations.
+ *
+ * @param {Date} timestamp - The timestamp to set as the last product export time.
+ */
+function updateProductExportTimestampInRzlvCOConfigs(timestamp) {
+    const brainCommerceCOConfigs = getCurentOrNewRzlvCOConfigs();
 
     if (brainCommerceCOConfigs) {
         Transaction.wrap(function () {
@@ -241,12 +272,12 @@ function updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceI
 module.exports = {
     getCurentOrNewBrainCommerceCOConfigs: getCurentOrNewBrainCommerceCOConfigs,
     getBrainCommerceProductsLastExportTime: getBrainCommerceProductsLastExportTime,
-    getLastSuccessfulBaselineRun: getLastSuccessfulBaselineRun,
-    getLastSuccessfulIncrementalRun: getLastSuccessfulIncrementalRun,
     updateLastIncrementalRun: updateLastIncrementalRun,
     updateLastBaselineRun: updateLastBaselineRun,
     getBrainCommerceFAQsLastExportTime: getBrainCommerceFAQsLastExportTime,
     updateProductExportTimestampInBrainCommerceCOConfigs: updateProductExportTimestampInBrainCommerceCOConfigs,
+    updateProductExportTimestampInRzlvCOConfigs: updateProductExportTimestampInRzlvCOConfigs,
+    getRzlvProductsLastExportTime: getRzlvProductsLastExportTime,
     updateFAQExportTimestampInBrainCommerceCOConfigs: updateFAQExportTimestampInBrainCommerceCOConfigs,
     compareInventoryRecordIfTimeComarisonFails: compareInventoryRecordIfTimeComarisonFails,
     updateInventoryRecordOnSuccessResponse: updateInventoryRecordOnSuccessResponse,

@@ -605,10 +605,11 @@ function baselineIngestion(parameters, jobID) {
     Logger.info('***** Baseline Product Export Job Started *****');
     const jobStartTime = new Date();
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-    rzlvSnpdBaselineLastRun = brainCommerceConfigsHelpers.getLastSuccessfulBaselineRun();
+    rzlvSnpdBaselineLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
     try {
         processProducts(ProductMgr.queryAllSiteProducts(), false, listPriceBookId, 'BASELINE', jobID);
         brainCommerceConfigsHelpers.updateLastBaselineRun(jobStartTime);
+        brainCommerceConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
     } catch (error) {
         Logger.error('Error in Full Product Export Job: {0}', error.message);
     }
@@ -624,10 +625,11 @@ function partialIngestion(parameters, jobID) {
     const jobStartTime = new Date();
     Logger.info('***** Partial Product Export Job Started *****');
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-    rzlvSnpdPartialLastRun = brainCommerceConfigsHelpers.getLastSuccessfulIncrementalRun();
+    rzlvSnpdPartialLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
     try {
         processProducts(ProductMgr.queryAllSiteProducts(), true, listPriceBookId, 'PARTIAL', jobID);
         brainCommerceConfigsHelpers.updateLastIncrementalRun(jobStartTime);
+        brainCommerceConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
     } catch (error) {
         Logger.error('Error in Full Product Export Job: {0}', error.message);
     }
