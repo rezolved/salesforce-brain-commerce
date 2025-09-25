@@ -16,8 +16,7 @@ const constants = require('*/cartridge/scripts/constants');
 const priceInventoryDataAttr = 'rzlvLastExportedPriceAndInventory';
 const File = require('dw/io/File');
 const FileWriter = require('dw/io/FileWriter');
-let rzlvSnpdBaselineLastRun;
-let rzlvSnpdPartialLastRun;
+let rzlvSnpdLastRun;
 
 /**
  * Retrieves the price book ID for the default currency.
@@ -487,7 +486,7 @@ function isProductEligibleForDeltaExport(product, listPriceBookId) {
 
     // Check if the product is updated after last export
     const productLastModified = new Date(product.getLastModified());
-    const lastExport = (rzlvSnpdPartialLastRun && new Date(rzlvSnpdPartialLastRun)) || null;
+    const lastExport = (rzlvSnpdLastRun && new Date(rzlvSnpdLastRun)) || null;
     let isProductUpdated = lastExport && productLastModified > lastExport;
 
     // Check if the product availability or price status has changed
@@ -605,7 +604,6 @@ function baselineIngestion(parameters, jobID) {
     Logger.info('***** Baseline Product Export Job Started *****');
     const jobStartTime = new Date();
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-    rzlvSnpdBaselineLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
     try {
         processProducts(ProductMgr.queryAllSiteProducts(), false, listPriceBookId, 'BASELINE', jobID);
         brainCommerceConfigsHelpers.updateLastBaselineRun(jobStartTime);
@@ -625,7 +623,7 @@ function partialIngestion(parameters, jobID) {
     const jobStartTime = new Date();
     Logger.info('***** Partial Product Export Job Started *****');
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-    rzlvSnpdPartialLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
+    rzlvSnpdLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
     try {
         processProducts(ProductMgr.queryAllSiteProducts(), true, listPriceBookId, 'PARTIAL', jobID);
         brainCommerceConfigsHelpers.updateLastIncrementalRun(jobStartTime);
