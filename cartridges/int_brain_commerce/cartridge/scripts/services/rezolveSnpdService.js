@@ -6,6 +6,52 @@ const Logger = require('dw/system/Logger');
 // const Status = require('dw/svc/Status');
 
 /**
+ * Builds a full URL by concatenating the base URL with the provided path.
+ * @param {string} base - Base URL
+ * @param {string} path - URL path to append
+ * @returns {string} Full URL
+ */
+function buildUrl(base, path) {
+    return base + (path || '');
+}
+
+/**
+ * Safely parses a JSON string, returning an object with success status and parsed value or error message.
+ * @param {string} text - JSON string to parse
+ * @returns {{ok: boolean, value: any}|{ok: boolean, value: null}|{ok: boolean, error}} Parse result
+ */
+function safeJsonParse(text) {
+    if (!text) return { ok: true, value: null };
+    try {
+        return { ok: true, value: JSON.parse(text) };
+    } catch (error) {
+        return { ok: false, error: error.message };
+    }
+}
+
+/**
+ * Builds a multipart/form-data body from the given fields.
+ * @param {Object} fields - Key-value pairs to include in the form data
+ * @returns {{body: string, boundary: string}} Multipart body and boundary string
+ */
+function buildMultipart(fields) {
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
+    let body = '';
+    const keys = Object.keys(fields);
+
+    keys.forEach(function (key) {
+        body += '--' + boundary + '\r\n';
+        body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
+        body += 'Content-Type: text/plain\r\n\r\n';
+        body += String(fields[key]) + '\r\n';
+    });
+
+    body += '--' + boundary + '--\r\n';
+
+    return { body, boundary };
+}
+
+/**
  * Service wrapper for Rezolve SNPD API operations
  * Provides functions to initiate tasks and get task status
  */
@@ -21,7 +67,7 @@ const RezolveSnpdService = {
             createRequest: function (svc, params) {
                 const fullUrl = buildUrl(
                     Site.current.getCustomPreferenceValue('rezolveIngestionApiUrl'),
-                  params && params.endPointConfigs && params.endPointConfigs.endPoint ? params.endPointConfigs.endPoint : ''
+                    params && params.endPointConfigs && params.endPointConfigs.endPoint ? params.endPointConfigs.endPoint : ''
                 );
                 svc.setURL(fullUrl);
                 const method = (params && params.endPointConfigs && params.endPointConfigs.method) || 'POST';
@@ -42,7 +88,8 @@ const RezolveSnpdService = {
                 }
 
                 // For non-GET, send multipart/form-data body
-                const { body, boundary } = buildMultipart(params?.requestBody || {});
+                const fields = params && params.requestBody ? params.requestBody : {};
+                const { body, boundary } = buildMultipart(fields);
                 svc.addHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
                 Logger.info('Rezolve SNPD API Request: {0} {1}', method, fullUrl);
                 return body;
@@ -70,7 +117,7 @@ const RezolveSnpdService = {
                         success: true,
                         statusCode: statusCode,
                         data: parsedData,
-                        message: 'Request completed 3333 successfully'
+                        message: 'Request completed successfully'
                     };
                 }
                 if (statusCode >= 400 && statusCode < 500) {
@@ -204,36 +251,6 @@ const RezolveSnpdService = {
         }
     }
 };
-
-function buildUrl(base, path) {
-    return base + (path || '');
-}
-
-function safeJsonParse(text) {
-    if (!text) return { ok: true, value: null };
-    try {
-        return { ok: true, value: JSON.parse(text) };
-    } catch (error) {
-        return { ok: false, error: error.message };
-    }
-}
-
-function buildMultipart(fields) {
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
-    let body = '';
-    const keys = Object.keys(fields);
-
-    keys.forEach(function (key) {
-        body += '--' + boundary + '\r\n';
-        body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
-        body += 'Content-Type: text/plain\r\n\r\n';
-        body += String(fields[key]) + '\r\n';
-    });
-
-    body += '--' + boundary + '--\r\n';
-
-    return { body, boundary };
-}
 
 module.exports = RezolveSnpdService;
 
