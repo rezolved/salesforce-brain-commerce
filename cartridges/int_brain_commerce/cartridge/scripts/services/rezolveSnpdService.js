@@ -1,8 +1,8 @@
 'use strict';
 
-var LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
-var Site = require('dw/system/Site');
-var Logger = require('dw/system/Logger');
+const LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
+const Site = require('dw/system/Site');
+const Logger = require('dw/system/Logger');
 // const Status = require('dw/svc/Status');
 
 /**
@@ -19,20 +19,19 @@ const RezolveSnpdService = {
         Logger.info('Getting Rezolve SNPD service instance');
         return LocalServiceRegistry.createService('rezolvesnpd.http.ingest', {
             createRequest: function (svc, params) {
-                const baseUrl = Site.current.getCustomPreferenceValue('rezolveIngestionApiUrl');
-                const endPointPath = params && params.endPointConfigs && params.endPointConfigs.endPoint ? params.endPointConfigs.endPoint : '';
-                const fullUrl = baseUrl + (endPointPath || '');
+                const fullUrl = buildUrl(
+                    Site.current.getCustomPreferenceValue('rezolveIngestionApiUrl'),
+                  params && params.endPointConfigs && params.endPointConfigs.endPoint ? params.endPointConfigs.endPoint : ''
+                );
                 svc.setURL(fullUrl);
-                const method = params && params.endPointConfigs && params.endPointConfigs.method ? params.endPointConfigs.method : 'POST';
+                const method = (params && params.endPointConfigs && params.endPointConfigs.method) || 'POST';
                 svc.setRequestMethod(method);
 
                 // Set headers according to expected API contract
                 if (Site.current.getCustomPreferenceValue('rezolveClientKey')) {
-                    Logger.info('Client Key: {0}', Site.current.getCustomPreferenceValue('rezolveClientKey'));
                     svc.addHeader('Authorization', 'client-key ' + Site.current.getCustomPreferenceValue('rezolveClientKey'));
                 }
                 if (Site.current.getCustomPreferenceValue('rezolveCustomerId')) {
-                    Logger.info('Customer Id: {0}', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
                     svc.addHeader('X-Groupby-Customer-Id', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
                 }
 
@@ -43,22 +42,9 @@ const RezolveSnpdService = {
                 }
 
                 // For non-GET, send multipart/form-data body
-                const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
+                const { body, boundary } = buildMultipart(params?.requestBody || {});
                 svc.addHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
-
-                let body = '';
-                const fields = params && params.requestBody ? params.requestBody : {};
-                const keys = Object.keys(fields);
-
-                keys.forEach(function (key) {
-                    body += '--' + boundary + '\r\n';
-                    body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
-                    body += 'Content-Type: text/plain\r\n\r\n';
-                    body += String(fields[key]) + '\r\n';
-                });
-
-                body += '--' + boundary + '--\r\n';
-
+                Logger.info('Rezolve SNPD API Request: {0} {1}', method, fullUrl);
                 return body;
             },
 
@@ -68,20 +54,27 @@ const RezolveSnpdService = {
                 const responseText = response.getText();
                 let errorData = null;
 
+                const parseResult = safeJsonParse(responseText);
+                if (!parseResult.ok) {
+                    return {
+                        success: false,
+                        statusCode,
+                        data: null,
+                        message: `Failed to parse JSON response: ${parseResult.error}`
+                    };
+                }
+                const parsedData = parseResult.value;
+
                 if (statusCode >= 200 && statusCode < 300) {
                     return {
                         success: true,
                         statusCode: statusCode,
-                        data: responseText ? JSON.parse(responseText) : null,
+                        data: parsedData,
                         message: 'Request completed 3333 successfully'
                     };
                 }
                 if (statusCode >= 400 && statusCode < 500) {
-                    try {
-                        errorData = responseText ? JSON.parse(responseText) : null;
-                    } catch (e) {
-                        Logger.error('Failed to parse error response: {0}', e.message);
-                    }
+                    errorData = parsedData || null;
 
                     return {
                         success: false,
@@ -91,11 +84,7 @@ const RezolveSnpdService = {
                     };
                 }
                 if (statusCode >= 500) {
-                    try {
-                        errorData = responseText ? JSON.parse(responseText) : null;
-                    } catch (e) {
-                        Logger.error('Failed to parse error response: {0}', e.message);
-                    }
+                    errorData = parsedData || null;
 
                     return {
                         success: false,
@@ -110,14 +99,6 @@ const RezolveSnpdService = {
                     error: { message: 'Unexpected response status' },
                     message: 'Unexpected response: ' + statusCode
                 };
-            },
-
-            getRequestLogMessage: function (request) {
-                return 'Rezolve SNPD API Request: ' + request.getMethod() + ' ' + request.getURL();
-            },
-
-            getResponseLogMessage: function (response) {
-                return 'Rezolve SNPD API Response: ' + response.getStatusCode() + ' - ' + response.getText();
             }
         });
     },
@@ -223,6 +204,36 @@ const RezolveSnpdService = {
         }
     }
 };
+
+function buildUrl(base, path) {
+    return base + (path || '');
+}
+
+function safeJsonParse(text) {
+    if (!text) return { ok: true, value: null };
+    try {
+        return { ok: true, value: JSON.parse(text) };
+    } catch (error) {
+        return { ok: false, error: error.message };
+    }
+}
+
+function buildMultipart(fields) {
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
+    let body = '';
+    const keys = Object.keys(fields);
+
+    keys.forEach(function (key) {
+        body += '--' + boundary + '\r\n';
+        body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
+        body += 'Content-Type: text/plain\r\n\r\n';
+        body += String(fields[key]) + '\r\n';
+    });
+
+    body += '--' + boundary + '--\r\n';
+
+    return { body, boundary };
+}
 
 module.exports = RezolveSnpdService;
 
