@@ -145,6 +145,29 @@
                 }
             ]
             }
+        },
+        {
+            "@type-id": "custom.RezolveSnpd_PollAndUpdate",
+            "@supports-parallel-execution": "true",
+            "@supports-site-context": "true",
+            "@supports-organization-context": "false",
+            "description": "Send Products Info",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/rezolveSnpdIngestion.js",
+            "function": "pollAndUpdate",
+            "transactional": "false",
+            "timeout-in-seconds": "600",
+            "parameters": {},
+            "status-codes": {
+                "status": [{
+                    "@code": "ERROR",
+                    "description": "Used when the step failed with an error."
+                },
+                    {
+                        "@code": "OK",
+                        "description": "Used when the step finished successfully."
+                    }
+                ]
+            }
         }
         ]
     }
