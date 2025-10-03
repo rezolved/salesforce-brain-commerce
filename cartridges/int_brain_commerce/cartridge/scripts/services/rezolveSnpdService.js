@@ -12,7 +12,9 @@ const Logger = require('dw/system/Logger');
  * @returns {string} Full URL
  */
 function buildUrl(base, path) {
-    return base + (path || '');
+    if (!base) return String(path || '');
+    if (!path) return String(base);
+    return base.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
 }
 
 /**
@@ -177,7 +179,6 @@ const RezolveSnpdService = {
                 options: params.options || {},
                 timestamp: new Date().toISOString()
             };
-            Logger.info('Authentication Type2 : {0}', service.getAuthentication());
             const result = service.call({
                 requestBody: requestBody,
                 endPointConfigs: { method: 'POST', endPoint: '/api/tasks' }
@@ -187,7 +188,11 @@ const RezolveSnpdService = {
                 Logger.info('Task initiated successfully: {0}', params.taskType);
                 return result.getObject();
             }
-            Logger.error('Failed to initiate task: {0}{1}', result.error, result.getErrorMessage());
+            Logger.error(
+                'Failed to initiate task: {0} - {1}',
+                JSON.stringify(result.error || {}),
+                result.getErrorMessage()
+            );
             return {
                 success: false,
                 error: { message: result.getErrorMessage() },
@@ -216,6 +221,8 @@ const RezolveSnpdService = {
             if (!params || !params.taskId) {
                 return {
                     success: false,
+                    statusCode: 400,
+                    data: null,
                     error: { message: 'Task ID is required' },
                     message: 'Invalid parameters: task ID is required'
                 };
@@ -229,15 +236,16 @@ const RezolveSnpdService = {
                 endPointConfigs: { method: 'GET', endPoint: endPoint }
             });
 
-            const obj = result.getObject();
-
             if (result.isOk()) {
                 Logger.info('Task status retrieved successfully: {0}', params.taskId);
-                return obj && obj.data && obj.data.currentStage ? obj.data.currentStage : null;
+                return result.getObject();
             }
+
             Logger.error('Failed to get task status: {0}', result.getErrorMessage());
             return {
                 success: false,
+                statusCode: result.getStatusCode ? result.getStatusCode() : 500,
+                data: null,
                 error: { message: result.getErrorMessage() },
                 message: 'Service call failed'
             };
@@ -245,6 +253,8 @@ const RezolveSnpdService = {
             Logger.error('Error getting task status: {0}', error.message);
             return {
                 success: false,
+                statusCode: 500,
+                data: null,
                 error: { message: error.message },
                 message: 'Exception occurred while getting task status'
             };
