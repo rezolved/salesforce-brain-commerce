@@ -238,16 +238,15 @@ const RezolveSnpdService = {
     },
 
     /**
-   * Get the status of a specific task from the Rezolve SNPD API
-   * @param {Object} params - Task status parameters
-   * @param {string} params.taskId - ID of the task to check
-   * @param {boolean} [params.waitForCompletion=false] - Whether to wait for completion
-   * @returns {Object} Response object with task status and data
-   */
-    getTaskStatus: function (params) {
-        Logger.info('Getting task status for taskId: {0}', params && params.taskId);
+      * Get the detail of a specific task from the Rezolve SNPD API
+      * @param {string} taskId - ID of the task to get details for
+      * @param {boolean} [waitForCompletion=false] - Whether to wait for completion
+      * @returns {Object} Response object with task status and data
+    */
+    getTaskDetail: function (taskId, waitForCompletion) {
+        Logger.info('Getting task details for taskId: {0}', taskId);
         try {
-            if (!params || !params.taskId) {
+            if (!taskId) {
                 return {
                     success: false,
                     statusCode: 400,
@@ -257,8 +256,8 @@ const RezolveSnpdService = {
                 };
             }
 
-            const waitForCompletion = (typeof params.waitForCompletion === 'boolean') ? params.waitForCompletion : false;
-            const endPoint = '/api/tasks/' + params.taskId + '?waitForCompletion=' + (waitForCompletion ? 'true' : 'false');
+            const wait = (typeof waitForCompletion === 'undefined') ? false : waitForCompletion;
+            const endPoint = '/api/tasks/' + encodeURIComponent(taskId) + '?waitForCompletion=' + (wait ? 'true' : 'false');
 
             const service = this.getService();
             const result = service.call({
@@ -266,11 +265,11 @@ const RezolveSnpdService = {
             });
 
             if (result.isOk()) {
-                Logger.info('Task status retrieved successfully: {0}', params.taskId);
+                Logger.info('Task details retrieved successfully: {0}', taskId);
                 return result.getObject();
             }
 
-            Logger.error('Failed to get task status: {0}', result.getErrorMessage());
+            Logger.error('Failed to get task details: {0}', result.getErrorMessage());
             return {
                 success: false,
                 statusCode: result.getStatusCode ? result.getStatusCode() : 500,
@@ -279,13 +278,13 @@ const RezolveSnpdService = {
                 message: 'Service call failed'
             };
         } catch (error) {
-            Logger.error('Error getting task status: {0}', error.message);
+            Logger.error('Error getting task details: {0}', error.message);
             return {
                 success: false,
                 statusCode: 500,
                 data: null,
                 error: { message: error.message },
-                message: 'Exception occurred while getting task status'
+                message: 'Exception occurred while getting task details'
             };
         }
     }
