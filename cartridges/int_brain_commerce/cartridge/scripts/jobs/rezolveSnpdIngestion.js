@@ -462,7 +462,7 @@ function createIngestionTask(uploadType, response, jobID) {
             ingestionTask.custom.taskID = taskId;
             ingestionTask.custom.jobType = uploadType;
             ingestionTask.custom.currentStage = currentStage;
-            ingestionTask.custom.status = currentStage;
+            ingestionTask.custom.status = 'PENDING';
             ingestionTask.custom.submittedAt = new Date();
             ingestionTask.custom.lastCheckedAt = new Date();
 

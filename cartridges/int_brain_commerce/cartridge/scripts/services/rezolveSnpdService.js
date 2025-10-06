@@ -34,28 +34,6 @@ function safeJsonParse(text) {
 }
 
 /**
- * Builds a multipart/form-data body from the given fields.
- * @param {Object} fields - Key-value pairs to include in the form data
- * @returns {{body: string, boundary: string}} Multipart body and boundary string
- */
-function buildMultipart(fields) {
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
-    let body = '';
-    const keys = Object.keys(fields);
-
-    keys.forEach(function (key) {
-        body += '--' + boundary + '\r\n';
-        body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
-        body += 'Content-Type: text/plain\r\n\r\n';
-        body += String(fields[key]) + '\r\n';
-    });
-
-    body += '--' + boundary + '--\r\n';
-
-    return { body, boundary };
-}
-
-/**
  * Service wrapper for Rezolve SNPD API operations
  * Provides functions to initiate tasks and get task status
  */
