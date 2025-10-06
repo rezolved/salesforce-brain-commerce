@@ -16,7 +16,7 @@ const HTTPRequestPart = require('dw/net/HTTPRequestPart');
 function buildUrl(base, path) {
     if (!base) return String(path || '');
     if (!path) return String(base);
-    return base.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
+    return String(base).replace(/\/+$/, '') + '/' + String(path || '').replace(/^\/+/, '');
 }
 
 /**
@@ -56,8 +56,9 @@ const RezolveSnpdService = {
                 svc.setRequestMethod(method);
 
                 // Set headers according to expected API contract
-                if (Site.current.getCustomPreferenceValue('rezolveClientKey')) {
-                    svc.addHeader('Authorization', 'client-key ' + Site.current.getCustomPreferenceValue('rezolveClientKey'));
+                const clientKey = Site.current.getCustomPreferenceValue('rezolveClientKey');
+                if (clientKey) {
+                    svc.addHeader('Authorization', 'client-key ' + clientKey);
                 }
                 if (Site.current.getCustomPreferenceValue('rezolveCustomerId')) {
                     svc.addHeader('X-Groupby-Customer-Id', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
@@ -77,14 +78,14 @@ const RezolveSnpdService = {
                             const file = new File(fields[key]);
                             if (file.exists()) {
                                 requestParts.push(new HTTPRequestPart(key, file));
-                                Logger.info('Added file part for catalog: {0}', file.getFullPath());
+                                Logger.debug('Added file part for catalog: {0}', file.getName());
                             } else {
                                 Logger.error('Catalog file does not exist: {0}', fields[key]);
-                                requestParts.push(new HTTPRequestPart(key, String(fields[key])));
+                                throw new Error('Catalog file not found: ' + fields[key]);
                             }
                         } else if (fields[key] instanceof File) {
                             requestParts.push(new HTTPRequestPart(key, fields[key]));
-                            Logger.info('Added file object part for catalog: {0}', fields[key].getFullPath());
+                            Logger.debug('Added file object part for catalog: {0}', fields[key].getName());
                         } else {
                             requestParts.push(new HTTPRequestPart(key, String(fields[key])));
                         }
@@ -168,6 +169,13 @@ const RezolveSnpdService = {
                     message: 'Invalid parameters: parameters are required'
                 };
             }
+            if (!params.taskType) {
+                return {
+                    success: false,
+                    error: { message: 'Task type is required' },
+                    message: 'Invalid parameters: taskType is required'
+                };
+            }
 
             const service = this.getService();
 
@@ -244,8 +252,14 @@ const RezolveSnpdService = {
             });
 
             if (result.isOk()) {
+                const obj = result.getObject();
                 Logger.info('Task status retrieved successfully: {0}', params.taskId);
-                return result.getObject();
+                return {
+                    success: true,
+                    statusCode: result.getStatus(),
+                    data: obj && obj.data ? obj.data : obj,
+                    message: 'Task status retrieved'
+                };
             }
 
             Logger.error('Failed to get task status: {0}', result.getErrorMessage());
