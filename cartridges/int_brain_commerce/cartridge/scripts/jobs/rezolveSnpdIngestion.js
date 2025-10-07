@@ -409,6 +409,42 @@ function writeProductsToFile(productsRequest) {
     }
 }
 
+/**
+ * Creates a rezolveIngestionTask custom object with the provided data.
+ * @param {string} uploadType - The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
+ * @param {Object} response - The response object containing task information
+ * @param {string} jobID - The execution ID of the job
+ */
+function createIngestionTask(uploadType, response, jobID) {
+    try {
+        const taskId = response.data && response.data.id ? response.data.id : null;
+        const currentStage = response.data && response.data.currentStage ? response.data.currentStage : 'INITIATED';
+
+        if (!taskId) {
+            Logger.error('No task ID found in response, cannot create ingestion task');
+            return;
+        }
+        Transaction.wrap(function () {
+            const ingestionTask = CustomObjectMgr.createCustomObject(
+                constants.REZOLVE_INGESTION_TASK_CUSTOM_OBJECT_ID,
+                taskId
+            );
+
+            ingestionTask.custom.sfccJobExecutionID = jobID;
+            ingestionTask.custom.taskID = taskId;
+            ingestionTask.custom.jobType = uploadType;
+            ingestionTask.custom.currentStage = currentStage;
+            ingestionTask.custom.status = 'PENDING';
+            ingestionTask.custom.submittedAt = new Date();
+            ingestionTask.custom.lastCheckedAt = new Date();
+
+            Logger.info('Created rezolveIngestionTask with ID: {0}', taskId);
+        });
+    } catch (error) {
+        Logger.error('Error creating rezolveIngestionTask: {0}', error.message);
+    }
+}
+
 // eslint-disable-next-line valid-jsdoc
 /**
  * Sends a batch of products to the Rezolve SNPD service.
@@ -449,7 +485,6 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId, upl
             return false;
         }
         // eslint-disable-next-line no-use-before-define
-        Logger.error('11111111');
         createIngestionTask(uploadType, response, jobID);
         productsToBeExported.forEach(function (product) {
             brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
@@ -459,42 +494,6 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId, upl
     } catch (error) {
         Logger.error('Error sending catalog data: {0}', error.message);
         return false;
-    }
-}
-
-/**
- * Creates a rezolveIngestionTask custom object with the provided data.
- * @param {string} uploadType - The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
- * @param {Object} response - The response object containing task information
- * @param {string} jobID - The execution ID of the job
- */
-function createIngestionTask(uploadType, response, jobID) {
-    try {
-        const taskId = response.data && response.data.id ? response.data.id : null;
-        const currentStage = response.data && response.data.currentStage ? response.data.currentStage : 'INITIATED';
-
-        if (!taskId) {
-            Logger.error('No task ID found in response, cannot create ingestion task');
-            return;
-        }
-        Transaction.wrap(function () {
-            const ingestionTask = CustomObjectMgr.createCustomObject(
-                constants.REZOLVE_INGESTION_TASK_CUSTOM_OBJECT_ID,
-                taskId
-            );
-
-            ingestionTask.custom.sfccJobExecutionID = jobID;
-            ingestionTask.custom.taskID = taskId;
-            ingestionTask.custom.jobType = uploadType;
-            ingestionTask.custom.currentStage = currentStage;
-            ingestionTask.custom.status = 'PENDING';
-            ingestionTask.custom.submittedAt = new Date();
-            ingestionTask.custom.lastCheckedAt = new Date();
-
-            Logger.info('Created rezolveIngestionTask with ID: {0}', taskId);
-        });
-    } catch (error) {
-        Logger.error('Error creating rezolveIngestionTask: {0}', error.message);
     }
 }
 
