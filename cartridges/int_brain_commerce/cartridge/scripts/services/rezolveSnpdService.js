@@ -57,11 +57,12 @@ const RezolveSnpdService = {
 
                 // Set headers according to expected API contract
                 const clientKey = Site.current.getCustomPreferenceValue('rezolveClientKey');
+                const customerId = Site.current.getCustomPreferenceValue('rezolveCustomerId');
                 if (clientKey) {
                     svc.addHeader('Authorization', 'client-key ' + clientKey);
                 }
-                if (Site.current.getCustomPreferenceValue('rezolveCustomerId')) {
-                    svc.addHeader('X-Groupby-Customer-Id', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
+                if (customerId) {
+                    svc.addHeader('X-Groupby-Customer-Id', customerId);
                 }
 
                 if (method === 'GET') {
