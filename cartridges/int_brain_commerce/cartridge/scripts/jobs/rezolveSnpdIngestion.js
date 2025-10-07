@@ -449,6 +449,7 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId, upl
             return false;
         }
         // eslint-disable-next-line no-use-before-define
+        Logger.error('11111111');
         createIngestionTask(uploadType, response, jobID);
         productsToBeExported.forEach(function (product) {
             brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
@@ -476,7 +477,6 @@ function createIngestionTask(uploadType, response, jobID) {
             Logger.error('No task ID found in response, cannot create ingestion task');
             return;
         }
-
         Transaction.wrap(function () {
             const ingestionTask = CustomObjectMgr.createCustomObject(
                 constants.REZOLVE_INGESTION_TASK_CUSTOM_OBJECT_ID,
@@ -707,8 +707,9 @@ function getActiveTasks() {
  * @param {Object} task - The task custom object to update
  * @param {string} status - The new status to set
  * @param {boolean} isCompleted - Whether the task is completed (sets completedAt if true)
+ * @param {string} currentStage - Optional current stage value to set
  */
-function updateTaskStatus(task, status, isCompleted) {
+function updateTaskStatus(task, status, isCompleted, currentStage) {
     try {
         Transaction.wrap(function () {
             task.custom.status = status;
@@ -716,6 +717,10 @@ function updateTaskStatus(task, status, isCompleted) {
 
             if (isCompleted) {
                 task.custom.completedAt = new Date();
+            }
+
+            if (currentStage) {
+                task.custom.currentStage = currentStage;
             }
 
             Logger.info('Task {0} status updated to {1}', task.custom.taskID, status);
@@ -756,7 +761,11 @@ function pollAndUpdate() {
 
                 if (timeDifference > twentyFourHoursInMs) {
                     const hoursPassed = Math.floor(timeDifference / (60 * 60 * 1000));
-                    updateTaskStatus(task, TASK_STATUS.TIMED_OUT, true);
+                    updateTaskStatus(
+                        task,
+                        TASK_STATUS.TIMED_OUT,
+                        true
+                    );
                     Logger.warn(
                         'Task {0} has not been updated for more than 24 hours. '
                       + '{1} hours have passed since last modification. Task status changed to TIMED_OUT.',
@@ -767,15 +776,31 @@ function pollAndUpdate() {
                     try {
                         const taskDetails = rzlvSnpdService.getTaskDetail(task.custom.taskID, false);
                         if (taskDetails && taskDetails.success) {
-                            switch (taskDetails.data.status) {
+                            Logger.error('Current task status: {0}', taskDetails.data.currentStage);
+                            switch (taskDetails.data.currentStage) {
                                 case TASK_CURRENT_STAGE.COMPLETE:
-                                    updateTaskStatus(task, TASK_STATUS.SUCCESS, true);
+                                    updateTaskStatus(
+                                        task,
+                                        TASK_STATUS.SUCCESS,
+                                        true,
+                                        taskDetails.data.currentStage
+                                    );
                                     break;
                                 case TASK_CURRENT_STAGE.FAILED:
-                                    updateTaskStatus(task, TASK_STATUS.FAILED, true);
+                                    updateTaskStatus(
+                                        task,
+                                        TASK_STATUS.FAILED,
+                                        true,
+                                        taskDetails.data.currentStage
+                                    );
                                     break;
                                 default:
-                                    updateTaskStatus(task, TASK_STATUS.IN_PROGRESS, false);
+                                    updateTaskStatus(
+                                        task,
+                                        TASK_STATUS.IN_PROGRESS,
+                                        false,
+                                        taskDetails.data.currentStage
+                                    );
                             }
                         } else {
                             Logger.error('Failed to get task details for {0}: {1}', task.custom.taskID, taskDetails ? taskDetails.message : 'Unknown error');

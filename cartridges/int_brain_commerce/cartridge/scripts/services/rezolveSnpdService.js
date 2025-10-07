@@ -16,7 +16,7 @@ const HTTPRequestPart = require('dw/net/HTTPRequestPart');
 function buildUrl(base, path) {
     if (!base) return String(path || '');
     if (!path) return String(base);
-    return base.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
+    return String(base).replace(/\/+$/, '') + '/' + String(path || '').replace(/^\/+/, '');
 }
 
 /**
@@ -216,11 +216,11 @@ const RezolveSnpdService = {
     },
 
     /**
-      * Get the detail of a specific task from the Rezolve SNPD API
-      * @param {string} taskId - ID of the task to get details for
-      * @param {boolean} [waitForCompletion=false] - Whether to wait for completion
-      * @returns {Object} Response object with task status and data
-    */
+     * Get the detail of a specific task from the Rezolve SNPD API
+     * @param {string} taskId - ID of the task to get details for
+     * @param {boolean} [waitForCompletion=false] - Whether to wait for completion
+     * @returns {Object} Response object with task status and data
+     */
     getTaskDetail: function (taskId, waitForCompletion) {
         Logger.info('Getting task details for taskId: {0}', taskId);
         try {
@@ -243,8 +243,14 @@ const RezolveSnpdService = {
             });
 
             if (result.isOk()) {
+                const obj = result.getObject();
                 Logger.info('Task details retrieved successfully: {0}', taskId);
-                return result.getObject();
+                return {
+                    success: true,
+                    statusCode: result.getStatus(),
+                    data: obj && obj.data ? obj.data : obj,
+                    message: 'Task status retrieved'
+                };
             }
 
             Logger.error('Failed to get task details: {0}', result.getErrorMessage());
