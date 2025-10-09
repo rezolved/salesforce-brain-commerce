@@ -3,6 +3,8 @@
 const LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
 const Site = require('dw/system/Site');
 const Logger = require('dw/system/Logger');
+const File = require('dw/io/File');
+const HTTPRequestPart = require('dw/net/HTTPRequestPart');
 // const Status = require('dw/svc/Status');
 
 /**
@@ -14,7 +16,7 @@ const Logger = require('dw/system/Logger');
 function buildUrl(base, path) {
     if (!base) return String(path || '');
     if (!path) return String(base);
-    return base.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
+    return String(base).replace(/\/+$/, '') + '/' + String(path || '').replace(/^\/+/, '');
 }
 
 /**
@@ -29,28 +31,6 @@ function safeJsonParse(text) {
     } catch (error) {
         return { ok: false, error: error.message };
     }
-}
-
-/**
- * Builds a multipart/form-data body from the given fields.
- * @param {Object} fields - Key-value pairs to include in the form data
- * @returns {{body: string, boundary: string}} Multipart body and boundary string
- */
-function buildMultipart(fields) {
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
-    let body = '';
-    const keys = Object.keys(fields);
-
-    keys.forEach(function (key) {
-        body += '--' + boundary + '\r\n';
-        body += 'Content-Disposition: form-data; name="' + key + '"\r\n';
-        body += 'Content-Type: text/plain\r\n\r\n';
-        body += String(fields[key]) + '\r\n';
-    });
-
-    body += '--' + boundary + '--\r\n';
-
-    return { body, boundary };
 }
 
 /**
@@ -76,25 +56,45 @@ const RezolveSnpdService = {
                 svc.setRequestMethod(method);
 
                 // Set headers according to expected API contract
-                if (Site.current.getCustomPreferenceValue('rezolveClientKey')) {
-                    svc.addHeader('Authorization', 'client-key ' + Site.current.getCustomPreferenceValue('rezolveClientKey'));
+                const clientKey = Site.current.getCustomPreferenceValue('rezolveClientKey');
+                const customerId = Site.current.getCustomPreferenceValue('rezolveCustomerId');
+                if (clientKey) {
+                    svc.addHeader('Authorization', 'client-key ' + clientKey);
                 }
-                if (Site.current.getCustomPreferenceValue('rezolveCustomerId')) {
-                    svc.addHeader('X-Groupby-Customer-Id', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
+                if (customerId) {
+                    svc.addHeader('X-Groupby-Customer-Id', customerId);
                 }
 
-                // For GET requests, don't send multipart body; set Accept header
                 if (method === 'GET') {
                     svc.addHeader('Accept', 'application/json');
                     return null;
                 }
 
-                // For non-GET, send multipart/form-data body
                 const fields = params && params.requestBody ? params.requestBody : {};
-                const { body, boundary } = buildMultipart(fields);
-                svc.addHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
-                Logger.info('Rezolve SNPD API Request: {0} {1}', method, fullUrl);
-                return body;
+                const requestParts = [];
+
+                Object.keys(fields).forEach(function (key) {
+                    if (key === 'catalog') {
+                        if (typeof fields[key] === 'string') {
+                            const file = new File(fields[key]);
+                            if (file.exists()) {
+                                requestParts.push(new HTTPRequestPart(key, file));
+                                Logger.debug('Added file part for catalog: {0}', file.getName());
+                            } else {
+                                Logger.error('Catalog file does not exist: {0}', fields[key]);
+                                throw new Error('Catalog file not found: ' + fields[key]);
+                            }
+                        } else if (fields[key] instanceof File) {
+                            requestParts.push(new HTTPRequestPart(key, fields[key]));
+                            Logger.debug('Added file object part for catalog: {0}', fields[key].getName());
+                        } else {
+                            requestParts.push(new HTTPRequestPart(key, String(fields[key])));
+                        }
+                    } else {
+                        requestParts.push(new HTTPRequestPart(key, String(fields[key]), 'UTF-8'));
+                    }
+                });
+                return requestParts;
             },
 
             parseResponse: function (svc, response) {
@@ -170,15 +170,31 @@ const RezolveSnpdService = {
                     message: 'Invalid parameters: parameters are required'
                 };
             }
+            if (!params.taskType) {
+                return {
+                    success: false,
+                    error: { message: 'Task type is required' },
+                    message: 'Invalid parameters: taskType is required'
+                };
+            }
 
             const service = this.getService();
 
-            const requestBody = params.requestBody || {
-                taskType: params.taskType,
-                data: params.data || {},
-                options: params.options || {},
-                timestamp: new Date().toISOString()
-            };
+            let requestBody;
+            if (params.requestBody) {
+                requestBody = params.requestBody;
+            } else {
+                requestBody = {};
+                if (params.data) {
+                    Object.keys(params.data).forEach(function (key) {
+                        requestBody[key] = params.data[key];
+                    });
+                }
+                requestBody.taskType = params.taskType;
+                requestBody.options = params.options || {};
+                requestBody.timestamp = new Date().toISOString();
+            }
+            Logger.info('Authentication Type : {0}', service.getAuthentication());
             const result = service.call({
                 requestBody: requestBody,
                 endPointConfigs: { method: 'POST', endPoint: '/api/tasks' }
@@ -237,8 +253,14 @@ const RezolveSnpdService = {
             });
 
             if (result.isOk()) {
+                const obj = result.getObject();
                 Logger.info('Task status retrieved successfully: {0}', params.taskId);
-                return result.getObject();
+                return {
+                    success: true,
+                    statusCode: result.getStatus(),
+                    data: obj && obj.data ? obj.data : obj,
+                    message: 'Task status retrieved'
+                };
             }
 
             Logger.error('Failed to get task status: {0}', result.getErrorMessage());

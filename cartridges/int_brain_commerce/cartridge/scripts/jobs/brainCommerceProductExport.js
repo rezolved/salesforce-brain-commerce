@@ -19,7 +19,7 @@ var productAttributes = brainCommerceConfigsHelpers.parseContent(Site.current.ge
 var imageTypes = Site.current.getCustomPreferenceValue('brainCommerceImageTypes').split(',') || ['main', 'large'];
 var ingestVariationGroup = Site.current.getCustomPreferenceValue('ingestVariationGroup');
 var Transaction = require('dw/system/Transaction');
-
+const priceInventoryDataAttr = 'brainCommerceLastExportedPriceAndInventory';
 /**
  * Generates a list of category paths from an array of categories.
  *
@@ -253,7 +253,7 @@ function sendProductsToBrainCommerce(productsRequest, productsToBeExported, list
     // Update brainCommerceLastExport product custom attribute
     if (response && response.status === 'OK') {
         productsToBeExported.forEach(function (product) {
-            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId);
+            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
         });
     } else {
         Logger.error('Error in Brain commerce service: {0}', response.msg);
@@ -281,7 +281,7 @@ function isProductEligibleForDeltaExport(product, listPriceBookId) {
 
     // Check if the product availability or price status has changed
     if (!isProductUpdated) {
-        isProductUpdated = brainCommerceConfigsHelpers.compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId);
+        isProductUpdated = brainCommerceConfigsHelpers.compareInventoryRecordIfTimeComarisonFails(product, listPriceBookId, priceInventoryDataAttr);
     }
 
     return isProductUpdated;

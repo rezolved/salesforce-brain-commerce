@@ -8,11 +8,21 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
+            <attribute-definition attribute-id="rzlvLastExportedPriceAndInventory">
+                <display-name xml:lang="x-default">Rezolve SNPD</display-name>
+                <type>text</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
         </custom-attribute-definitions>
         <group-definitions>
             <attribute-group group-id="brainCommerce">
                 <display-name xml:lang="x-default">Brain Commerce</display-name>
                 <attribute attribute-id="brainCommerceLastExportedPriceAndInventory"/>
+            </attribute-group>
+            <attribute-group group-id="rezolveSnpd">
+                <display-name xml:lang="x-default">Rezolve SNPD</display-name>
+                <attribute attribute-id="rzlvLastExportedPriceAndInventory"/>
             </attribute-group>
         </group-definitions>
     </type-extension>
@@ -147,7 +157,7 @@
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
             <attribute-definition attribute-id="lastSuccessfulBaselineRun">
-                <display-name xml:lang="x-default">Last Successful Incremental Run</display-name>
+                <display-name xml:lang="x-default">Last Successful Baseline Run</display-name>
                 <type>datetime</type>
                 <localizable-flag>false</localizable-flag>
                 <mandatory-flag>false</mandatory-flag>
