@@ -56,13 +56,11 @@ const RezolveSnpdService = {
                 svc.setRequestMethod(method);
 
                 // Set headers according to expected API contract
-                const clientKey = Site.current.getCustomPreferenceValue('rezolveClientKey');
-                const customerId = Site.current.getCustomPreferenceValue('rezolveCustomerId');
-                if (clientKey) {
-                    svc.addHeader('Authorization', 'client-key ' + clientKey);
+                if (Site.current.getCustomPreferenceValue('rezolveClientKey')) {
+                    svc.addHeader('Authorization', 'client-key ' + Site.current.getCustomPreferenceValue('rezolveClientKey'));
                 }
-                if (customerId) {
-                    svc.addHeader('X-Groupby-Customer-Id', customerId);
+                if (Site.current.getCustomPreferenceValue('rezolveCustomerId')) {
+                    svc.addHeader('X-Groupby-Customer-Id', Site.current.getCustomPreferenceValue('rezolveCustomerId'));
                 }
 
                 if (method === 'GET') {
@@ -79,14 +77,14 @@ const RezolveSnpdService = {
                             const file = new File(fields[key]);
                             if (file.exists()) {
                                 requestParts.push(new HTTPRequestPart(key, file));
-                                Logger.debug('Added file part for catalog: {0}', file.getName());
+                                Logger.info('Added file part for catalog: {0}', file.getFullPath());
                             } else {
                                 Logger.error('Catalog file does not exist: {0}', fields[key]);
-                                throw new Error('Catalog file not found: ' + fields[key]);
+                                requestParts.push(new HTTPRequestPart(key, String(fields[key])));
                             }
                         } else if (fields[key] instanceof File) {
                             requestParts.push(new HTTPRequestPart(key, fields[key]));
-                            Logger.debug('Added file object part for catalog: {0}', fields[key].getName());
+                            Logger.info('Added file object part for catalog: {0}', fields[key].getFullPath());
                         } else {
                             requestParts.push(new HTTPRequestPart(key, String(fields[key])));
                         }
@@ -170,13 +168,6 @@ const RezolveSnpdService = {
                     message: 'Invalid parameters: parameters are required'
                 };
             }
-            if (!params.taskType) {
-                return {
-                    success: false,
-                    error: { message: 'Task type is required' },
-                    message: 'Invalid parameters: taskType is required'
-                };
-            }
 
             const service = this.getService();
 
@@ -225,16 +216,15 @@ const RezolveSnpdService = {
     },
 
     /**
-   * Get the status of a specific task from the Rezolve SNPD API
-   * @param {Object} params - Task status parameters
-   * @param {string} params.taskId - ID of the task to check
-   * @param {boolean} [params.waitForCompletion=false] - Whether to wait for completion
-   * @returns {Object} Response object with task status and data
-   */
-    getTaskStatus: function (params) {
-        Logger.info('Getting task status for taskId: {0}', params && params.taskId);
+     * Get the detail of a specific task from the Rezolve SNPD API
+     * @param {string} taskId - ID of the task to get details for
+     * @param {boolean} [waitForCompletion=false] - Whether to wait for completion
+     * @returns {Object} Response object with task status and data
+     */
+    getTaskDetail: function (taskId, waitForCompletion) {
+        Logger.info('Getting task details for taskId: {0}', taskId);
         try {
-            if (!params || !params.taskId) {
+            if (!taskId) {
                 return {
                     success: false,
                     statusCode: 400,
@@ -244,8 +234,8 @@ const RezolveSnpdService = {
                 };
             }
 
-            const waitForCompletion = (typeof params.waitForCompletion === 'boolean') ? params.waitForCompletion : false;
-            const endPoint = '/api/tasks/' + params.taskId + '?waitForCompletion=' + (waitForCompletion ? 'true' : 'false');
+            const wait = (typeof waitForCompletion === 'undefined') ? false : waitForCompletion;
+            const endPoint = '/api/tasks/' + encodeURIComponent(taskId) + '?waitForCompletion=' + (wait ? 'true' : 'false');
 
             const service = this.getService();
             const result = service.call({
@@ -254,7 +244,7 @@ const RezolveSnpdService = {
 
             if (result.isOk()) {
                 const obj = result.getObject();
-                Logger.info('Task status retrieved successfully: {0}', params.taskId);
+                Logger.info('Task details retrieved successfully: {0}', taskId);
                 return {
                     success: true,
                     statusCode: result.getStatus(),
@@ -263,7 +253,7 @@ const RezolveSnpdService = {
                 };
             }
 
-            Logger.error('Failed to get task status: {0}', result.getErrorMessage());
+            Logger.error('Failed to get task details: {0}', result.getErrorMessage());
             return {
                 success: false,
                 statusCode: result.getStatusCode ? result.getStatusCode() : 500,
@@ -272,13 +262,13 @@ const RezolveSnpdService = {
                 message: 'Service call failed'
             };
         } catch (error) {
-            Logger.error('Error getting task status: {0}', error.message);
+            Logger.error('Error getting task details: {0}', error.message);
             return {
                 success: false,
                 statusCode: 500,
                 data: null,
                 error: { message: error.message },
-                message: 'Exception occurred while getting task status'
+                message: 'Exception occurred while getting task details'
             };
         }
     }

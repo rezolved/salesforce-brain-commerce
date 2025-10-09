@@ -195,4 +195,36 @@
             </run-recurring>
         </triggers>
     </job>
+
+    <job job-id="RezolveSnpd-CheckStatus">
+        <description>
+            Polls the Rezolve API for the status of pending SNPD ingestion tasks.
+        </description>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="snpdPollAndUpdate" type="custom.RezolveSnpd_PollAndUpdate" enforce-restart="false">
+                <description/>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>03:00:00.000Z</start-time>
+                    <interval>15m</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
+        </triggers>
+    </job>
 </jobs>
