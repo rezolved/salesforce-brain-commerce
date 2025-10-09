@@ -152,7 +152,7 @@
             "@supports-site-context": "true",
             "@supports-organization-context": "false",
             "description": "Send Products Info",
-            "module": "int_brain_commerce/cartridge/scripts/jobs/rezolveSnpdIngestion.js",
+            "module": "int_brain_commerce/cartridge/scripts/jobs/rezolveSnpdStatus.js",
             "function": "pollAndUpdate",
             "transactional": "false",
             "timeout-in-seconds": "600",

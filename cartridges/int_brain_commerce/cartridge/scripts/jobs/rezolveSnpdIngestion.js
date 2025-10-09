@@ -19,31 +19,6 @@ const FileWriter = require('dw/io/FileWriter');
 let rzlvSnpdLastRun;
 
 /**
- * Task status constants for API currentStage values
- * These are the statuses returned by the Rezolve SNPD API
- */
-const TASK_CURRENT_STAGE = {
-    INITIATED: 'INITIATED',
-    QUEUED: 'QUEUED',
-    IN_PROGRESS: 'IN_PROGRESS',
-    COMPLETE: 'COMPLETE',
-    FAILED: 'FAILED'
-};
-
-/**
- * Task status constants for custom object status values
- * These are the statuses stored in the rezolveIngestionTask custom object
- */
-const TASK_STATUS = {
-    PENDING: 'PENDING',
-    IN_PROGRESS: 'IN_PROGRESS',
-    SUCCESS: 'SUCCESS',
-    FAILED: 'FAILED',
-    CANCELED: 'CANCELED',
-    TIMED_OUT: 'TIMED_OUT'
-};
-
-/**
  * Retrieves the price book ID for the default currency.
  *
  * @returns {string} The ID of the price book that matches the default currency, or null if not found.
@@ -541,8 +516,6 @@ function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, job
     const productsToBeExported = [];
     let productsProcessedSuccessfully = 0;
 
-    let test = 0;
-
     while (products.hasNext()) {
         let product = products.next();
         // Only process products that are type of product, master or variant
@@ -556,10 +529,6 @@ function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, job
                 // Do not send the product if it was updated before updated after last export
                 if (!isProductEligibletoExport) {
                     product = null;
-                }
-                test += 1;
-                if (test >= 5) {
-                    break;
                 }
             }
             if (product) {
@@ -682,142 +651,6 @@ function extractAndSubmit(parameters, jobExecution) {
     return new Status(Status.OK, 'FINISHED');
 }
 
-/**
- * Fetches rezolveIngestionTask custom objects with status PENDING or IN_PROGRESS.
- * @returns {dw.object.CustomObjectIterator} Iterator of matching custom objects, or null if an error occurs.
- */
-function getActiveTasks() {
-    try {
-        return CustomObjectMgr.queryCustomObjects(
-            'rezolveIngestionTask',
-            'custom.status = {0} OR custom.status = {1}',
-            'creationDate desc',
-            'PENDING',
-            'IN_PROGRESS'
-        );
-    } catch (error) {
-        Logger.error('Error querying rezolveIngestionTask custom objects: {0}', error.message);
-        return null;
-    }
-}
-
-/**
- * Updates the status of a task in the custom object
- * @param {Object} task - The task custom object to update
- * @param {string} status - The new status to set
- * @param {boolean} isCompleted - Whether the task is completed (sets completedAt if true)
- * @param {string} currentStage - Optional current stage value to set
- */
-function updateTaskStatus(task, status, isCompleted, currentStage) {
-    try {
-        Transaction.wrap(function () {
-            task.custom.status = status;
-            task.custom.lastCheckedAt = new Date();
-
-            if (isCompleted) {
-                task.custom.completedAt = new Date();
-            }
-
-            if (currentStage) {
-                task.custom.currentStage = currentStage;
-            }
-
-            Logger.info('Task {0} status updated to {1}', task.custom.taskID, status);
-        });
-    } catch (error) {
-        Logger.error('Error updating task {0} status to {1}: {2}', task.custom.taskID, status, error.message);
-    }
-}
-
-/**
- * Poll and update job function.
- * @param {Object} parameters - Parameters for the job.@param parameters
- * @param {Object} jobExecution - JobExecution object
- * @returns {Status} Status object indicating job completion.
- */
-/**
- * Poll and update job function.
- * @param {Object} parameters - Parameters for the job
- * @param {Object} jobExecution - JobExecution object
- * @returns {Status} Status object indicating job completion
- */
-function pollAndUpdate() {
-    try {
-        const rzlvSnpdService = require('*/cartridge/scripts/services/rezolveSnpdService');
-        const activeTasks = getActiveTasks();
-        const currentTime = new Date();
-        const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
-
-        if (!activeTasks) {
-            Logger.info('No pending tasks found');
-            return new Status(Status.OK, 'NO_TASKS');
-        }
-
-        while (activeTasks.hasNext()) {
-            const task = activeTasks.next();
-            if (task.lastModified) {
-                const timeDifference = currentTime.getTime() - new Date(task.lastModified).getTime();
-
-                if (timeDifference > twentyFourHoursInMs) {
-                    const hoursPassed = Math.floor(timeDifference / (60 * 60 * 1000));
-                    updateTaskStatus(
-                        task,
-                        TASK_STATUS.TIMED_OUT,
-                        true
-                    );
-                    Logger.warn(
-                        'Task {0} has not been updated for more than 24 hours. '
-                      + '{1} hours have passed since last modification. Task status changed to TIMED_OUT.',
-                        task.custom.taskID,
-                        hoursPassed
-                    );
-                } else {
-                    try {
-                        const taskDetails = rzlvSnpdService.getTaskDetail(task.custom.taskID, false);
-                        if (taskDetails && taskDetails.success) {
-                            Logger.error('Current task status: {0}', taskDetails.data.currentStage);
-                            switch (taskDetails.data.currentStage) {
-                                case TASK_CURRENT_STAGE.COMPLETE:
-                                    updateTaskStatus(
-                                        task,
-                                        TASK_STATUS.SUCCESS,
-                                        true,
-                                        taskDetails.data.currentStage
-                                    );
-                                    break;
-                                case TASK_CURRENT_STAGE.FAILED:
-                                    updateTaskStatus(
-                                        task,
-                                        TASK_STATUS.FAILED,
-                                        true,
-                                        taskDetails.data.currentStage
-                                    );
-                                    break;
-                                default:
-                                    updateTaskStatus(
-                                        task,
-                                        TASK_STATUS.IN_PROGRESS,
-                                        false,
-                                        taskDetails.data.currentStage
-                                    );
-                            }
-                        } else {
-                            Logger.error('Failed to get task details for {0}: {1}', task.custom.taskID, taskDetails ? taskDetails.message : 'Unknown error');
-                        }
-                    } catch (error) {
-                        Logger.error('Error getting task details for {0}: {1}', task.custom.taskID, error.message);
-                    }
-                }
-            }
-        }
-        return new Status(Status.OK, 'COMPLETED');
-    } catch (error) {
-        Logger.error('Error in pollAndUpdate: {0}', error.message);
-        return new Status(Status.ERROR, 'FAILED');
-    }
-}
-
 module.exports = {
-    extractAndSubmit: extractAndSubmit,
-    pollAndUpdate: pollAndUpdate
+    extractAndSubmit: extractAndSubmit
 };
