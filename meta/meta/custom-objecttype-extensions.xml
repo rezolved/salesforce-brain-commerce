@@ -190,6 +190,55 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
+            <attribute-definition attribute-id="productCount">
+                <display-name xml:lang="x-default">Product Count</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="exportTimeSec">
+                <display-name xml:lang="x-default">Export Time Sec</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="uploadTimeSec">
+                <display-name xml:lang="x-default">Upload Time Sec</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="ingestionProcessingTimeSec">
+                <display-name xml:lang="x-default">Ingestion Processing Time Sec</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="numProcessedRecords">
+                <display-name xml:lang="x-default">Num Processed Records</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="numIndexedDocuments">
+                <display-name xml:lang="x-default">Num Indexed Documents</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="numFailedRecords">
+                <display-name xml:lang="x-default">Num Failed Records</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
         </attribute-definitions>
         <group-definitions>
             <attribute-group group-id="rezolveIngestionTask">
@@ -204,6 +253,13 @@
                 <attribute attribute-id="submittedAt"/>
                 <attribute attribute-id="lastCheckedAt"/>
                 <attribute attribute-id="completedAt"/>
+                <attribute attribute-id="productCount"/>
+                <attribute attribute-id="exportTimeSec"/>
+                <attribute attribute-id="uploadTimeSec"/>
+                <attribute attribute-id="ingestionProcessingTimeSec"/>
+                <attribute attribute-id="numProcessedRecords"/>
+                <attribute attribute-id="numIndexedDocuments"/>
+                <attribute attribute-id="numFailedRecords"/>
             </attribute-group>
         </group-definitions>
     </custom-type>

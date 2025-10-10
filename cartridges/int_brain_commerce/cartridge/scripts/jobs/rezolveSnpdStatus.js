@@ -29,6 +29,33 @@ const TASK_STATUS = {
 };
 
 /**
+ * Converts a time string in HH:MM:SS format to total seconds
+ * @param {string} timeString - Time in HH:MM:SS format (e.g., "00:32:16")
+ * @returns {number} Total seconds, or 0 if parsing fails
+ */
+function convertDurationToSeconds(timeString) {
+    try {
+        if (!timeString || typeof timeString !== 'string') {
+            return 0;
+        }
+
+        const parts = timeString.split(':');
+        if (parts.length !== 3) {
+            return 0;
+        }
+
+        const hours = parseInt(parts[0], 10) || 0;
+        const minutes = parseInt(parts[1], 10) || 0;
+        const seconds = parseInt(parts[2], 10) || 0;
+
+        return (hours * 3600) + (minutes * 60) + seconds;
+    } catch (error) {
+        Logger.error('Error converting duration to seconds: {0}', error.message);
+        return 0;
+    }
+}
+
+/**
  * Fetches rezolveIngestionTask custom objects with status PENDING or IN_PROGRESS.
  * @returns {dw.object.CustomObjectIterator} Iterator of matching custom objects, or null if an error occurs.
  */
@@ -53,8 +80,9 @@ function getActiveTasks() {
  * @param {string} status - The new status to set
  * @param {boolean} isCompleted - Whether the task is completed (sets completedAt if true)
  * @param {string} currentStage - Optional current stage value to set
+ * @param {Object} apiMetrics - Optional object containing API processing metrics
  */
-function updateTaskStatus(task, status, isCompleted, currentStage) {
+function updateTaskStatus(task, status, isCompleted, currentStage, apiMetrics) {
     try {
         Transaction.wrap(function () {
             task.custom.status = status;
@@ -68,7 +96,32 @@ function updateTaskStatus(task, status, isCompleted, currentStage) {
                 task.custom.currentStage = currentStage;
             }
 
-            Logger.info('Task {0} status updated to {1}', task.custom.taskID, status);
+            if (apiMetrics) {
+                if (typeof apiMetrics.ingestionProcessingTimeSec !== 'undefined') {
+                    task.custom.ingestionProcessingTimeSec = apiMetrics.ingestionProcessingTimeSec;
+                }
+                if (typeof apiMetrics.numProcessedRecords !== 'undefined') {
+                    task.custom.numProcessedRecords = apiMetrics.numProcessedRecords;
+                }
+                if (typeof apiMetrics.numIndexedDocuments !== 'undefined') {
+                    task.custom.numIndexedDocuments = apiMetrics.numIndexedDocuments;
+                }
+                if (typeof apiMetrics.numFailedRecords !== 'undefined') {
+                    task.custom.numFailedRecords = apiMetrics.numFailedRecords;
+                }
+
+                Logger.info(
+                    'Task {0} status updated to {1} with metrics: processingTime={2}s, processed={3}, indexed={4}, failed={5}',
+                    task.custom.taskID,
+                    status,
+                    apiMetrics.ingestionProcessingTimeSec || 0,
+                    apiMetrics.numProcessedRecords || 0,
+                    apiMetrics.numIndexedDocuments || 0,
+                    apiMetrics.numFailedRecords || 0
+                );
+            } else {
+                Logger.info('Task {0} status updated to {1}', task.custom.taskID, status);
+            }
         });
     } catch (error) {
         Logger.error('Error updating task {0} status to {1}: {2}', task.custom.taskID, status, error.message);
@@ -114,13 +167,42 @@ function pollAndUpdate() {
                         const taskDetails = rzlvSnpdService.getTaskDetail(task.custom.taskID, false);
                         if (taskDetails && taskDetails.success) {
                             Logger.error('Current task status: {0}', taskDetails.data.currentStage);
+
+                            let apiMetrics = null;
+                            if (taskDetails.data.currentStage === TASK_CURRENT_STAGE.COMPLETE
+                                || taskDetails.data.currentStage === TASK_CURRENT_STAGE.FAILED) {
+                                apiMetrics = {};
+
+                                if (taskDetails.data.processing) {
+                                    const processing = taskDetails.data.processing;
+
+                                    if (processing.indexingDuration) {
+                                        apiMetrics.ingestionProcessingTimeSec = convertDurationToSeconds(
+                                            processing.indexingDuration
+                                        );
+                                    } else {
+                                        apiMetrics.ingestionProcessingTimeSec = 0;
+                                    }
+
+                                    apiMetrics.numProcessedRecords = processing.numProcessedRecords || 0;
+                                    apiMetrics.numIndexedDocuments = processing.numIndexedDocuments || 0;
+                                    apiMetrics.numFailedRecords = processing.numFailedRecords || 0;
+                                } else {
+                                    apiMetrics.ingestionProcessingTimeSec = 0;
+                                    apiMetrics.numProcessedRecords = 0;
+                                    apiMetrics.numIndexedDocuments = 0;
+                                    apiMetrics.numFailedRecords = 0;
+                                }
+                            }
+
                             switch (taskDetails.data.currentStage) {
                                 case TASK_CURRENT_STAGE.COMPLETE:
                                     updateTaskStatus(
                                         task,
                                         TASK_STATUS.SUCCESS,
                                         true,
-                                        taskDetails.data.currentStage
+                                        taskDetails.data.currentStage,
+                                        apiMetrics
                                     );
                                     break;
                                 case TASK_CURRENT_STAGE.FAILED:
@@ -128,7 +210,8 @@ function pollAndUpdate() {
                                         task,
                                         TASK_STATUS.FAILED,
                                         true,
-                                        taskDetails.data.currentStage
+                                        taskDetails.data.currentStage,
+                                        apiMetrics
                                     );
                                     break;
                                 default:
