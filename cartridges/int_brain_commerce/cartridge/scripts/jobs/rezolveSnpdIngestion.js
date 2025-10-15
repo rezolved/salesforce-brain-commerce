@@ -389,8 +389,11 @@ function writeProductsToFile(productsRequest) {
  * @param {string} uploadType - The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
  * @param {Object} response - The response object containing task information
  * @param {string} jobID - The execution ID of the job
+ * @param {number} productCount - Number of products exported
+ * @param {number} exportTimeSec - Export time in seconds
+ * @param {number} uploadTimeSec - Upload time in seconds
  */
-function createIngestionTask(uploadType, response, jobID) {
+function createIngestionTask(uploadType, response, jobID, productCount, exportTimeSec, uploadTimeSec) {
     try {
         const taskId = response.data && response.data.id ? response.data.id : null;
         const currentStage = response.data && response.data.currentStage ? response.data.currentStage : 'INITIATED';
@@ -413,7 +416,17 @@ function createIngestionTask(uploadType, response, jobID) {
             ingestionTask.custom.submittedAt = new Date();
             ingestionTask.custom.lastCheckedAt = new Date();
 
-            Logger.info('Created rezolveIngestionTask with ID: {0}', taskId);
+            ingestionTask.custom.productCount = productCount || 0;
+            ingestionTask.custom.exportTimeSec = exportTimeSec || 0;
+            ingestionTask.custom.uploadTimeSec = uploadTimeSec || 0;
+
+            Logger.info(
+                'Created rezolveIngestionTask with ID: {0}, productCount: {1}, exportTimeSec: {2}, uploadTimeSec: {3}',
+                taskId,
+                productCount,
+                exportTimeSec,
+                uploadTimeSec
+            );
         });
     } catch (error) {
         Logger.error('Error creating rezolveIngestionTask: {0}', error.message);
@@ -428,8 +441,17 @@ function createIngestionTask(uploadType, response, jobID) {
  * @param {string} listPriceBookId list price book ID
  * @param {string} uploadType The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
  * @param {string} jobID The execution ID of the job
+ * @param {number} exportTimeSec Export time in seconds
+ * @returns {Object} Object with success status and upload time in seconds
  */
-function sendRequest(productsRequest, productsToBeExported, listPriceBookId, uploadType, jobID) {
+function sendRequest(
+    productsRequest,
+    productsToBeExported,
+    listPriceBookId,
+    uploadType,
+    jobID,
+    exportTimeSec
+) {
     const rzlvSnpdService = require('*/cartridge/scripts/services/rezolveSnpdService');
     Logger.info('Sending ' + productsRequest.length + ' products to Rezolve SNPD service.');
 
@@ -444,6 +466,8 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId, upl
             catalog: tempFilePath
         };
 
+        const uploadStartTime = new Date().getTime();
+
         const response = rzlvSnpdService.initiateTask({
             taskType: 'PRODUCT_INGESTION',
             data: requestBody,
@@ -455,20 +479,23 @@ function sendRequest(productsRequest, productsToBeExported, listPriceBookId, upl
             }
         });
 
+        const uploadEndTime = new Date().getTime();
+        const uploadTimeSec = Math.floor((uploadEndTime - uploadStartTime) / 10);
+
         if (!(response && response.success)) {
             Logger.error('Error in Rezolve SNPD product ingestion service: {0}', response && response.error && response.error.message);
-            return false;
+            return { success: false, uploadTimeSec: uploadTimeSec };
         }
         // eslint-disable-next-line no-use-before-define
-        createIngestionTask(uploadType, response, jobID);
+        createIngestionTask(uploadType, response, jobID, productsRequest.length, exportTimeSec, uploadTimeSec);
         productsToBeExported.forEach(function (product) {
             brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
         });
         Logger.info('Successfully sent ' + productsRequest.length + ' products to Rezolve SNPD service.');
-        return true;
+        return { success: true, uploadTimeSec: uploadTimeSec };
     } catch (error) {
         Logger.error('Error sending catalog data: {0}', error.message);
-        return false;
+        return { success: false, uploadTimeSec: 0 };
     }
 }
 
@@ -512,6 +539,8 @@ function isProductEligibleForDeltaExport(product, listPriceBookId) {
  * @returns {Object} - Returns data related to process such as number of successfully processed products.
  */
 function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, jobID) {
+    const exportStartTime = new Date().getTime();
+
     const productsRequest = [];
     const productsToBeExported = [];
     let productsProcessedSuccessfully = 0;
@@ -573,9 +602,13 @@ function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, job
         }
     }
 
+    const exportEndTime = new Date().getTime();
+    const exportTimeSec = Math.floor((exportEndTime - exportStartTime) / 1000);
+
     // Send the remaining product in the list
     if (productsRequest.length > 0) {
-        if (!sendRequest(productsRequest, productsToBeExported, listPriceBookId, uploadType, jobID)) {
+        const result = sendRequest(productsRequest, productsToBeExported, listPriceBookId, uploadType, jobID, exportTimeSec);
+        if (!result.success) {
             return {
                 productsProcessedSuccessfully: productsProcessedSuccessfully
             };
