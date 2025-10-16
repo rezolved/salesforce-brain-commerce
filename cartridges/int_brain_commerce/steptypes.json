@@ -117,7 +117,7 @@
             "module": "int_brain_commerce/cartridge/scripts/jobs/rezolveSnpdIngestion.js",
             "function": "extractAndSubmit",
             "transactional": "false",
-            "timeout-in-seconds": "1800",
+            "timeout-in-seconds": "14400",
             "parameters": {
                 "parameter": [
                     {

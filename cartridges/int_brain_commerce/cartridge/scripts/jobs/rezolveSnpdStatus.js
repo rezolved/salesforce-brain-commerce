@@ -143,9 +143,13 @@ function pollAndUpdate() {
             Logger.info('No pending tasks found');
             return new Status(Status.OK, 'NO_TASKS');
         }
-
+        const tasksArray = [];
         while (activeTasks.hasNext()) {
-            const task = activeTasks.next();
+            tasksArray.push(activeTasks.next());
+        }
+        activeTasks.close();
+
+        tasksArray.forEach(function (task) {
             if (task.lastModified) {
                 const timeDifference = currentTime.getTime() - new Date(task.lastModified).getTime();
 
@@ -158,7 +162,7 @@ function pollAndUpdate() {
                     );
                     Logger.warn(
                         'Task {0} has not been updated for more than 24 hours. '
-                      + '{1} hours have passed since last modification. Task status changed to TIMED_OUT.',
+            + '{1} hours have passed since last modification. Task status changed to TIMED_OUT.',
                         task.custom.taskID,
                         hoursPassed
                     );
@@ -170,7 +174,7 @@ function pollAndUpdate() {
 
                             let apiMetrics = null;
                             if (taskDetails.data.currentStage === TASK_CURRENT_STAGE.COMPLETE
-                                || taskDetails.data.currentStage === TASK_CURRENT_STAGE.FAILED) {
+                || taskDetails.data.currentStage === TASK_CURRENT_STAGE.FAILED) {
                                 apiMetrics = {};
 
                                 if (taskDetails.data.processing) {
@@ -230,7 +234,7 @@ function pollAndUpdate() {
                     }
                 }
             }
-        }
+        });
         return new Status(Status.OK, 'COMPLETED');
     } catch (error) {
         Logger.error('Error in pollAndUpdate: {0}', error.message);
