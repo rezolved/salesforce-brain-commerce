@@ -16,6 +16,7 @@ const constants = require('*/cartridge/scripts/constants');
 const priceInventoryDataAttr = 'rzlvLastExportedPriceAndInventory';
 const File = require('dw/io/File');
 const FileWriter = require('dw/io/FileWriter');
+const BATCH_SIZE = 10000;
 let rzlvSnpdLastRun;
 
 /**
@@ -352,23 +353,30 @@ function createProductObject(product, listPriceBookId) {
 }
 
 /**
- * Writes products data to a temporary file and returns the file path
- * @param {Array} productsRequest - Array of product objects
- * @returns {string} - Path to the created file
+ * Writes products data to a file (creates new or appends to existing)
+ * @param {Object|null} file - File object to append to, or null to create new file
+ * @param {Array} productsRequest - Array of product objects to write
+ * @returns {Object} - Object with file and filePath
  */
-function writeProductsToFile(productsRequest) {
-    const impexDir = File.getRootDirectory(File.IMPEX);
-    const catalogDir = new File(impexDir, 'rzlv/catalog');
-
-    if (!catalogDir.exists()) {
-        catalogDir.mkdirs();
-    }
-
-    const fileName = 'rezolve_products_' + new Date().getTime() + '.jsonld';
-    const file = new File(catalogDir, fileName);
-
+function writeProductsToFile(file, productsRequest) {
     try {
-        const fileWriter = new FileWriter(file, 'UTF-8');
+        let productsFile = file;
+        let filePath;
+        if (!productsFile) {
+            const impexDir = File.getRootDirectory(File.IMPEX);
+            const catalogDir = new File(impexDir, 'rzlv/catalog');
+
+            if (!catalogDir.exists()) {
+                catalogDir.mkdirs();
+            }
+
+            const fileName = 'rezolve_products_' + new Date().getTime() + '.jsonld';
+            productsFile = new File(catalogDir, fileName);
+            Logger.info('Created products file: {0}', productsFile.getFullPath());
+        }
+
+        filePath = productsFile.getFullPath();
+        const fileWriter = new FileWriter(productsFile, 'UTF-8', true);
 
         productsRequest.forEach(function (product) {
             const productJson = JSON.stringify(product);
@@ -376,8 +384,12 @@ function writeProductsToFile(productsRequest) {
         });
 
         fileWriter.close();
-        Logger.info('Products data written to file: {0}', file.getFullPath());
-        return file.getFullPath();
+        Logger.info('Written {0} products to file', productsRequest.length);
+
+        return {
+            file: productsFile,
+            filePath: filePath
+        };
     } catch (error) {
         Logger.error('Error writing products to file: {0}', error.message);
         throw error;
@@ -435,35 +447,32 @@ function createIngestionTask(uploadType, response, jobID, productCount, exportTi
 
 // eslint-disable-next-line valid-jsdoc
 /**
- * Sends a batch of products to the Rezolve SNPD service.
- * @param {Array} productsRequest product request object
- * @param {Array} productsToBeExported product to be exported to Rezolve SNPD
- * @param {string} listPriceBookId list price book ID
- * @param {string} uploadType The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
- * @param {string} jobID The execution ID of the job
- * @param {number} exportTimeSec Export time in seconds
+ * Sends products file to the Rezolve SNPD service.
+ * @param {string} filePath - Path to the products file
+ * @param {string} uploadType - The type of upload (BASELINE, PARTIAL_CATALOG, etc.)
+ * @param {string} jobID - The execution ID of the job
+ * @param {number} productCount - Total number of products in the file
+ * @param {number} exportTimeSec - Export time in seconds
  * @returns {Object} Object with success status and upload time in seconds
  */
 function sendRequest(
-    productsRequest,
-    productsToBeExported,
-    listPriceBookId,
+    filePath,
     uploadType,
     jobID,
+    productCount,
     exportTimeSec
 ) {
     const rzlvSnpdService = require('*/cartridge/scripts/services/rezolveSnpdService');
-    Logger.info('Sending ' + productsRequest.length + ' products to Rezolve SNPD service.');
+    Logger.info('Sending {0} products to Rezolve SNPD service.', productCount);
 
     try {
-        const tempFilePath = writeProductsToFile(productsRequest);
         // Use binary file upload instead of string content
         const requestBody = {
             collection: collectionName,
             indexerUploadType: uploadType,
             failureCountThreshold: 1000,
             timeoutMinutes: 100,
-            catalog: tempFilePath
+            catalog: filePath
         };
 
         const uploadStartTime = new Date().getTime();
@@ -486,12 +495,8 @@ function sendRequest(
             Logger.error('Error in Rezolve SNPD product ingestion service: {0}', response && response.error && response.error.message);
             return { success: false, uploadTimeSec: uploadTimeSec };
         }
-        // eslint-disable-next-line no-use-before-define
-        createIngestionTask(uploadType, response, jobID, productsRequest.length, exportTimeSec, uploadTimeSec);
-        productsToBeExported.forEach(function (product) {
-            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
-        });
-        Logger.info('Successfully sent ' + productsRequest.length + ' products to Rezolve SNPD service.');
+        createIngestionTask(uploadType, response, jobID, productCount, exportTimeSec, uploadTimeSec);
+        Logger.info('Successfully sent {0} products to Rezolve SNPD service.', productCount);
         return { success: true, uploadTimeSec: uploadTimeSec };
     } catch (error) {
         Logger.error('Error sending catalog data: {0}', error.message);
@@ -529,7 +534,7 @@ function isProductEligibleForDeltaExport(product, listPriceBookId) {
 
 /**
  * Processes a collection of products, filtering based on modification time and online status,
- * then sends batched product data to the Rezolve SNPD service.
+ * writes them in batches to a single file, then sends one request to the Rezolve SNPD service.
  *
  * @param {Object} products - An iterator of product objects.
  * @param {boolean} isDeltaFeed - Whether to process only recently modified products.
@@ -541,17 +546,26 @@ function isProductEligibleForDeltaExport(product, listPriceBookId) {
 function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, jobID) {
     const exportStartTime = new Date().getTime();
 
-    const productsRequest = [];
-    const productsToBeExported = [];
+    // Create a single file for all products
+    let fileInfo = writeProductsToFile(null, []);
+    let productsFile = fileInfo.file;
+    const filePath = fileInfo.filePath;
+
+    let productsRequest = [];
+    let productsToBeExported = [];
     let productsProcessedSuccessfully = 0;
+    let batchNumber = 1;
+
+    Logger.info('Starting product processing. Writing products to file in batches of {0}', BATCH_SIZE);
 
     while (products.hasNext()) {
         let product = products.next();
         // Only process products that are type of product, master or variant
         const eligibleProduct = product && (
             (!product.isProductSet() && !product.isBundle())
-            || (product.isMaster() && product.isOptionProduct())
+      || (product.isMaster() && product.isOptionProduct())
         ) && product.isOnline();
+
         if (eligibleProduct) {
             if (isDeltaFeed) {
                 const isProductEligibletoExport = isProductEligibleForDeltaExport(product, listPriceBookId);
@@ -598,21 +612,50 @@ function processProducts(products, isDeltaFeed, listPriceBookId, uploadType, job
                     productsToBeExported.push(product.masterProduct);
                     productsProcessedSuccessfully += 1;
                 }
+                if (productsRequest.length >= BATCH_SIZE) {
+                    Logger.info('Batch {0}: Writing {1} products to file...', batchNumber, productsRequest.length);
+                    fileInfo = writeProductsToFile(productsFile, productsRequest);
+                    productsFile = fileInfo.file;
+                    productsToBeExported.forEach(function (prod) {
+                        brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(prod, listPriceBookId, priceInventoryDataAttr);
+                    });
+                    batchNumber += 1;
+                    productsRequest = [];
+                    productsToBeExported = [];
+                }
             }
         }
+    }
+    if (productsRequest.length > 0) {
+        Logger.info('Writing final batch with {0} products to file...', productsRequest.length);
+        fileInfo = writeProductsToFile(productsFile, productsRequest);
+        productsToBeExported.forEach(function (prod) {
+            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(prod, listPriceBookId, priceInventoryDataAttr);
+        });
     }
 
     const exportEndTime = new Date().getTime();
     const exportTimeSec = Math.floor((exportEndTime - exportStartTime) / 1000);
 
-    // Send the remaining product in the list
-    if (productsRequest.length > 0) {
-        const result = sendRequest(productsRequest, productsToBeExported, listPriceBookId, uploadType, jobID, exportTimeSec);
+    // Send single request with all products
+    if (productsProcessedSuccessfully > 0) {
+        Logger.info('Finished writing {0} products to file. Sending single request to Rezolve SNPD...', productsProcessedSuccessfully);
+        const result = sendRequest(
+            filePath,
+            uploadType,
+            jobID,
+            productsProcessedSuccessfully,
+            exportTimeSec
+        );
         if (!result.success) {
+            Logger.error('Failed to send products to Rezolve SNPD service');
             return {
-                productsProcessedSuccessfully: productsProcessedSuccessfully
+                productsProcessedSuccessfully: 0
             };
         }
+        Logger.info('Successfully sent {0} products to Rezolve SNPD service', productsProcessedSuccessfully);
+    } else {
+        Logger.info('No products to send.');
     }
 
     return {
