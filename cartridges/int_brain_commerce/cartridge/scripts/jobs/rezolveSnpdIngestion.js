@@ -692,17 +692,35 @@ function partialIngestion(parameters, jobID) {
     const jobStartTime = new Date();
     Logger.info('***** Partial Product Export Job Started *****');
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
+
     rzlvSnpdLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
+
     try {
-        processProducts(ProductMgr.queryAllSiteProducts(), true, listPriceBookId, 'PARTIAL', jobID);
+        // Ensure we have a valid JavaScript Date object for the query
+        // Depending on what brainCommerceConfigsHelpers returns, you might need: new Date(rzlvSnpdLastRun)
+        const lastRunDate = new Date(rzlvSnpdLastRun);
+
+        if (rzlvSnpdLastRun && !isNaN(lastRunDate.getTime())) {
+            Logger.info('Optimized Partial: Querying products modified on or after {0}', lastRunDate.toISOString());
+
+            // Query products where lastModified is greater than or equal to the last run date
+            // 'lastModified desc' sorts results, but null can be used if sort order doesn't matter for performance
+            const productsIterator = ProductMgr.queryProducts('lastModified >= {0}', 'lastModified desc', lastRunDate);
+
+            // Pass the filtered iterator to processProducts
+            processProducts(productsIterator, true, listPriceBookId, 'PARTIAL', jobID);
+        } else {
+            Logger.warn('Last run date not found or invalid. Falling back to full site query for partial ingestion.');
+            processProducts(ProductMgr.queryAllSiteProducts(), true, listPriceBookId, 'PARTIAL', jobID);
+        }
+
         brainCommerceConfigsHelpers.updateLastIncrementalRun(jobStartTime);
         brainCommerceConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
     } catch (error) {
-        Logger.error('Error in Full Product Export Job: {0}', error.message);
+        Logger.error('Error in Partial Product Export Job: {0}', error.message);
     }
     Logger.info('***** Partial Product Export Job Finished *****');
 }
-
 /**
  * Extract and submit product data to Rezolve SNPd.
  * @param {Object} parameters - Parameters for the job.@param parameters
