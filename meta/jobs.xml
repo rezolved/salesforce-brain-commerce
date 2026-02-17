@@ -125,4 +125,106 @@
             </run-recurring>
         </triggers>
     </job>
+
+    <job job-id="RezolveSnpd-BaselineIngestion">
+        <description>
+            Performs a full (BASELINE) export of the entire product catalog to Rezolve SNPD.
+        </description>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="snpdBaselineExtractAndSubmit" type="custom.RezolveSnpd_ExtractAndSubmit" enforce-restart="false">
+                <description/>
+                <parameters>
+                    <parameter name="indexerUploadType">BASELINE</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>03:00:00.000Z</start-time>
+                    <interval>1d</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
+        </triggers>
+    </job>
+
+    <job job-id="RezolveSnpd-IncrementalIngestion">
+        <description>
+            Performs an incremental (PARTIAL_CATALOG) export of recently changed products, prices, and inventory to Rezolve SNPD.
+        </description>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="snpdIncrementalExtractAndSubmit" type="custom.RezolveSnpd_ExtractAndSubmit" enforce-restart="false">
+                <description/>
+                <parameters>
+                    <parameter name="indexerUploadType">PARTIAL_CATALOG</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>03:00:00.000Z</start-time>
+                    <interval>1h</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
+        </triggers>
+    </job>
+
+    <job job-id="RezolveSnpd-CheckStatus">
+        <description>
+            Polls the Rezolve API for the status of pending SNPD ingestion tasks.
+        </description>
+        <parameters/>
+        <flow>
+            <context site-id="RefArch"/>
+            <step step-id="snpdPollAndUpdate" type="custom.RezolveSnpd_PollAndUpdate" enforce-restart="false">
+                <description/>
+            </step>
+        </flow>
+        <rules/>
+        <triggers>
+            <run-recurring enabled="true">
+                <recurrence>
+                    <date-from>2025-02-18Z</date-from>
+                    <start-time>03:00:00.000Z</start-time>
+                    <interval>15m</interval>
+                    <day-of-week>
+                        <weekday>Monday</weekday>
+                        <weekday>Tuesday</weekday>
+                        <weekday>Wednesday</weekday>
+                        <weekday>Thursday</weekday>
+                        <weekday>Friday</weekday>
+                        <weekday>Saturday</weekday>
+                        <weekday>Sunday</weekday>
+                    </day-of-week>
+                </recurrence>
+            </run-recurring>
+        </triggers>
+    </job>
 </jobs>

@@ -54,6 +54,216 @@
         </group-definitions>
     </custom-type>
 
+    <custom-type type-id="rzlvSnpdConfigs">
+        <display-name xml:lang="x-default">Brain Commerce Configs</display-name>
+        <staging-mode>no-staging</staging-mode>
+        <storage-scope>site</storage-scope>
+        <key-definition attribute-id="rzlvSnpdConfigKey">
+            <display-name xml:lang="x-default">Brain Commerce Config Key</display-name>
+            <type>string</type>
+            <min-length>0</min-length>
+        </key-definition>
+        <attribute-definitions>
+            <attribute-definition attribute-id="productLastExport">
+                <display-name xml:lang="x-default">Product Last Export</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+        </attribute-definitions>
+        <group-definitions>
+            <attribute-group group-id="brainCommerceLastExport">
+                <display-name xml:lang="x-default">Brain Commerce Last Export</display-name>
+                <attribute attribute-id="productLastExport"/>
+            </attribute-group>
+        </group-definitions>
+    </custom-type>
+
+    <custom-type type-id="rezolveIngestionTask">
+        <display-name xml:lang="x-default">Rezolve Ingestion Task</display-name>
+        <staging-mode>no-staging</staging-mode>
+        <storage-scope>site</storage-scope>
+        <key-definition attribute-id="taskID">
+            <display-name xml:lang="x-default">Task ID</display-name>
+            <type>string</type>
+            <min-length>0</min-length>
+        </key-definition>
+        <attribute-definitions>
+            <attribute-definition attribute-id="sfccJobExecutionID">
+                <display-name xml:lang="x-default">SFCC Job Execution ID</display-name>
+                <type>string</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="jobType">
+                <display-name xml:lang="x-default">Job Type</display-name>
+                <type>enum-of-string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <value-definitions>
+                    <value-definition>
+                        <display xml:lang="x-default">BASELINE</display>
+                        <value>BASELINE</value>
+                    </value-definition>
+                    <value-definition>
+                        <display xml:lang="x-default">PARTIAL_CATALOG</display>
+                        <value>PARTIAL_CATALOG</value>
+                    </value-definition>
+                </value-definitions>
+            </attribute-definition>
+            <attribute-definition attribute-id="currentStage">
+                <display-name xml:lang="x-default">Current Stage</display-name>
+                <type>string</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="status">
+                <display-name xml:lang="x-default">Status</display-name>
+                <type>enum-of-string</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <value-definitions>
+                    <value-definition>
+                        <display xml:lang="x-default">PENDING</display>
+                        <value>PENDING</value>
+                    </value-definition>
+                    <value-definition>
+                        <display xml:lang="x-default">IN_PROGRESS</display>
+                        <value>IN_PROGRESS</value>
+                    </value-definition>
+                    <value-definition>
+                        <display xml:lang="x-default">SUCCESS</display>
+                        <value>SUCCESS</value>
+                    </value-definition>
+                    <value-definition>
+                        <display xml:lang="x-default">FAILED</display>
+                        <value>FAILED</value>
+                    </value-definition>
+                    <value-definition>
+                        <display xml:lang="x-default">CANCELED</display>
+                        <value>CANCELED</value>
+                    </value-definition>
+                    <value-definition>
+                        <display xml:lang="x-default">TIMED_OUT</display>
+                        <value>TIMED_OUT</value>
+                    </value-definition>
+                </value-definitions>
+            </attribute-definition>
+            <attribute-definition attribute-id="fileName">
+                <display-name xml:lang="x-default">File Name</display-name>
+                <type>string</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="submittedAt">
+                <display-name xml:lang="x-default">Submitted At</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="lastCheckedAt">
+                <display-name xml:lang="x-default">Last Checked At</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="completedAt">
+                <display-name xml:lang="x-default">Completed At</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="finalApiResponse">
+                <display-name xml:lang="x-default">Final API Response</display-name>
+                <type>text</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="productCount">
+                <display-name xml:lang="x-default">Product Count</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="exportTimeSec">
+                <display-name xml:lang="x-default">Export Time Sec</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="uploadTimeSec">
+                <display-name xml:lang="x-default">Upload Time Sec</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="ingestionProcessingTimeSec">
+                <display-name xml:lang="x-default">Ingestion Processing Time Sec</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="numProcessedRecords">
+                <display-name xml:lang="x-default">Num Processed Records</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="numIndexedDocuments">
+                <display-name xml:lang="x-default">Num Indexed Documents</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="numFailedRecords">
+                <display-name xml:lang="x-default">Num Failed Records</display-name>
+                <type>int</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+        </attribute-definitions>
+        <group-definitions>
+            <attribute-group group-id="rezolveIngestionTask">
+                <display-name xml:lang="x-default">Rezolve Ingestion Task</display-name>
+                <attribute attribute-id="taskID"/>
+                <attribute attribute-id="sfccJobExecutionID"/>
+                <attribute attribute-id="jobType"/>
+                <attribute attribute-id="currentStage"/>
+                <attribute attribute-id="status"/>
+                <attribute attribute-id="fileName"/>
+                <attribute attribute-id="finalApiResponse"/>
+                <attribute attribute-id="submittedAt"/>
+                <attribute attribute-id="lastCheckedAt"/>
+                <attribute attribute-id="completedAt"/>
+                <attribute attribute-id="productCount"/>
+                <attribute attribute-id="exportTimeSec"/>
+                <attribute attribute-id="uploadTimeSec"/>
+                <attribute attribute-id="ingestionProcessingTimeSec"/>
+                <attribute attribute-id="numProcessedRecords"/>
+                <attribute attribute-id="numIndexedDocuments"/>
+                <attribute attribute-id="numFailedRecords"/>
+            </attribute-group>
+        </group-definitions>
+    </custom-type>
+
     <custom-type type-id="brainCommerceFAQ">
         <display-name xml:lang="x-default">Brain Commerce FAQs</display-name>
         <staging-mode>source-to-target</staging-mode>

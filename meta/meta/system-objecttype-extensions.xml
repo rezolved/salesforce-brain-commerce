@@ -8,11 +8,21 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
+            <attribute-definition attribute-id="rzlvLastExportedPriceAndInventory">
+                <display-name xml:lang="x-default">Rezolve SNPD</display-name>
+                <type>text</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
         </custom-attribute-definitions>
         <group-definitions>
             <attribute-group group-id="brainCommerce">
                 <display-name xml:lang="x-default">Brain Commerce</display-name>
                 <attribute attribute-id="brainCommerceLastExportedPriceAndInventory"/>
+            </attribute-group>
+            <attribute-group group-id="rezolveSnpd">
+                <display-name xml:lang="x-default">Rezolve SNPD</display-name>
+                <attribute attribute-id="rzlvLastExportedPriceAndInventory"/>
             </attribute-group>
         </group-definitions>
     </type-extension>
@@ -61,6 +71,13 @@
                 <min-length>0</min-length>
                 <default-value>large,main</default-value>
             </attribute-definition>
+            <attribute-definition attribute-id="ingestVariationGroup">
+                <display-name xml:lang="x-default">Ingest Variation Group</display-name>
+                <type>boolean</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <default-value>false</default-value>
+            </attribute-definition>
             <attribute-definition attribute-id="isBrainCommerceFrontendEnabled">
                 <display-name xml:lang="x-default">Is Conversation UI Enabled</display-name>
                 <type>boolean</type>
@@ -88,7 +105,63 @@
                 <mandatory-flag>false</mandatory-flag>
                 <externally-managed-flag>false</externally-managed-flag>
                 <min-length>0</min-length>
-                <default-value>https://storage.googleapis.com/brain-commerce-static-eu-dev/rezolve-chatbot.js</default-value>
+                <default-value>https://storage.googleapis.com/brain-commerce-static-eu-dev/rezolve-sdk-v2.umd.js</default-value>
+            </attribute-definition>
+            <attribute-definition attribute-id="rezolveIngestionApiUrl">
+                <display-name xml:lang="x-default">Rezolve Ingestion API URL</display-name>
+                <type>string</type>
+                <mandatory-flag>true</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="rezolveClientKey">
+                <display-name xml:lang="x-default">Rezolve Client Key</display-name>
+                <type>password</type>
+                <mandatory-flag>true</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="rezolveCustomerId">
+                <display-name xml:lang="x-default">Rezolve Customer ID</display-name>
+                <type>string</type>
+                <mandatory-flag>true</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="rezolveCollectionName">
+                <display-name xml:lang="x-default">Rezolve Collection Name</display-name>
+                <type>string</type>
+                <mandatory-flag>true</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <min-length>0</min-length>
+            </attribute-definition>
+            <attribute-definition attribute-id="brainCommerceSnpdProductAttributeMapping">
+                <display-name xml:lang="x-default">Attribute Mapping</display-name>
+                <type>text</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <field-height>15</field-height>
+            </attribute-definition>
+            <attribute-definition attribute-id="enableAutomatedBaselineRecovery">
+                <display-name xml:lang="x-default">Enable Auto Baseline Recovery</display-name>
+                <type>boolean</type>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+                <default-value>false</default-value>
+            </attribute-definition>
+            <attribute-definition attribute-id="lastSuccessfulIncrementalRun">
+                <display-name xml:lang="x-default">Last Successful Incremental Run</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
+            </attribute-definition>
+            <attribute-definition attribute-id="lastSuccessfulBaselineRun">
+                <display-name xml:lang="x-default">Last Successful Baseline Run</display-name>
+                <type>datetime</type>
+                <localizable-flag>false</localizable-flag>
+                <mandatory-flag>false</mandatory-flag>
+                <externally-managed-flag>false</externally-managed-flag>
             </attribute-definition>
 
         </custom-attribute-definitions>
@@ -101,10 +174,22 @@
                 <attribute attribute-id="brainCommerceFAQCustomObjectID"/>
                 <attribute attribute-id="brainCommerceProductAttributeMapping"/>
                 <attribute attribute-id="brainCommerceImageTypes"/>
+                <attribute attribute-id="ingestVariationGroup"/>
                 <attribute attribute-id="isBrainCommerceFrontendEnabled"/>
                 <attribute attribute-id="brainCommerceFrontendAPIKey"/>
                 <attribute attribute-id="brainCommerceFrontendAPIUrl"/>
                 <attribute attribute-id="brainCommerceSDKURL"/>
+            </attribute-group>
+            <attribute-group group-id="RezolveSnpd_BrainCommerceConfig">
+                <display-name xml:lang="x-default">Rezolve SNPD Config</display-name>
+                <attribute attribute-id="rezolveIngestionApiUrl"/>
+                <attribute attribute-id="rezolveClientKey"/>
+                <attribute attribute-id="rezolveCustomerId"/>
+                <attribute attribute-id="rezolveCollectionName"/>
+                <attribute attribute-id="brainCommerceSnpdProductAttributeMapping"/>
+                <attribute attribute-id="enableAutomatedBaselineRecovery"/>
+                <attribute attribute-id="lastSuccessfulIncrementalRun"/>
+                <attribute attribute-id="lastSuccessfulBaselineRun"/>
             </attribute-group>
         </group-definitions>
     </type-extension>

@@ -1,9 +1,20 @@
 <services xmlns="http://www.demandware.com/xml/impex/services/2014-09-26">
     <service-credential service-credential-id="int_braincommerce.http.service">
     </service-credential>
+    <service-credential service-credential-id="rezolvesnpd.http.ingest">
+    </service-credential>
 
     <service-profile service-profile-id="int_braincommerce.http.service">
         <timeout-millis>3600000</timeout-millis>
+        <rate-limit-enabled>false</rate-limit-enabled>
+        <rate-limit-calls>0</rate-limit-calls>
+        <rate-limit-millis>0</rate-limit-millis>
+        <cb-enabled>true</cb-enabled>
+        <cb-calls>0</cb-calls>
+        <cb-millis>0</cb-millis>
+    </service-profile>
+    <service-profile service-profile-id="rezolvesnpd.ingest.api">
+        <timeout-millis>300000</timeout-millis>
         <rate-limit-enabled>false</rate-limit-enabled>
         <rate-limit-calls>0</rate-limit-calls>
         <rate-limit-millis>0</rate-limit-millis>
@@ -21,5 +32,15 @@
         <mock-mode-enabled>false</mock-mode-enabled>
         <profile-id>int_braincommerce.http.service</profile-id>
         <credential-id>int_braincommerce.http.service</credential-id>
+    </service>
+    <service service-id="rezolvesnpd.http.ingest">
+        <service-type>HTTP</service-type>
+        <enabled>true</enabled>
+        <log-prefix>rezolvesnpd-ingest</log-prefix>
+        <comm-log-enabled>true</comm-log-enabled>
+        <force-prd-enabled>true</force-prd-enabled>
+        <mock-mode-enabled>false</mock-mode-enabled>
+        <profile-id>rezolvesnpd.ingest.api</profile-id>
+        <credential-id>rezolvesnpd.http.ingest</credential-id>
     </service>
 </services>
