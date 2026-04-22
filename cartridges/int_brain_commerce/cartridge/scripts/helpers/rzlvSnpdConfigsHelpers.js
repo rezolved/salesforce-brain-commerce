@@ -6,24 +6,6 @@ var Logger = require('dw/system/Logger');
 var Site = require('dw/system/Site');
 var currentSite = Site.getCurrent().getID();
 var constants = require('*/cartridge/scripts/constants');
-var Resource = require('dw/web/Resource');
-
-/**
- * Fetches the Brain Commerce custom object configurations or creates a new one if not available.
- *
- * @returns {dw.object.CustomObject} The Brain Commerce custom object.
- */
-function getCurentOrNewBrainCommerceCOConfigs() {
-    var brainCommerceCOConfigs = CustomObjectMgr.getCustomObject(constants.BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_ID, constants.BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_RECORD_ID);
-
-    if (!brainCommerceCOConfigs) {
-        Transaction.wrap(function () {
-            brainCommerceCOConfigs = CustomObjectMgr.createCustomObject(constants.BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_ID, constants.BRAIN_COMMERCE_CONFIG_CUSTOM_OBJECT_RECORD_ID);
-        });
-    }
-
-    return brainCommerceCOConfigs;
-}
 
 /**
  * Fetches the Brain Commerce custom object configurations or creates a new one if not available.
@@ -64,49 +46,6 @@ function parseContent(stringData) {
 }
 
 /**
- * Validates the required configuration for the Brain Commerce product ingestion job.
- *
- * @returns {Object} An object containing a 'valid' flag and a 'message' property with
- * an error message if the configuration is invalid.
- */
-function validateConfigForIngestion() {
-    var productMapping = parseContent(Site.current.getCustomPreferenceValue('brainCommerceProductAttributeMapping'));
-    var serviceUrl = Site.current.getCustomPreferenceValue('brainCommerceIngestorAPIUrl');
-    var serviceApiKey = Site.current.getCustomPreferenceValue('brainCommerceIngestorAPIKey');
-    var brainCommerceBackendEnabled = Site.current.getCustomPreferenceValue('isBrainCommerceBackendEnabled');
-
-    var result = {
-        message: '',
-        valid: false
-    };
-
-    if (!brainCommerceBackendEnabled) {
-        result.message = Resource.msg('label.backendenabled', 'brainCommerce', null);
-    } else if (Object.keys(productMapping).length === 0) {
-        result.message = Resource.msg('label.productmapping', 'brainCommerce', null);
-    } else if (!serviceUrl) {
-        result.message = Resource.msg('label.serviceurl', 'brainCommerce', null);
-    } else if (!serviceApiKey) {
-        result.message = Resource.msg('label.serviceapikey', 'brainCommerce', null);
-    } else {
-        result.valid = true;
-    }
-
-    return result;
-}
-
-/**
-* Retrieves the last product export timestamp from the Brain Commerce custom object.
-*
-* @returns {string|null} The last product export timestamp if available, otherwise null.
-*/
-function getBrainCommerceProductsLastExportTime() {
-    var brainCommerceProductCustomObject = getCurentOrNewBrainCommerceCOConfigs();
-    var braincommerceProductLastExport = brainCommerceProductCustomObject && brainCommerceProductCustomObject.custom.productLastExport;
-    return braincommerceProductLastExport;
-}
-
-/**
  * Retrieves the last product export timestamp from the Rezolve SNPD custom object.
  *
  * @returns {string|null} The last product export timestamp if available, otherwise null.
@@ -115,17 +54,6 @@ function getRzlvProductsLastExportTime() {
     const rzlvSnpdProductCustomObject = getCurentOrNewRzlvCOConfigs();
     const rzlvSnpdProductLastExport = rzlvSnpdProductCustomObject && rzlvSnpdProductCustomObject.custom.productLastExport;
     return rzlvSnpdProductLastExport;
-}
-
-/**
- * Retrieves the last FAQs export timestamp from the Brain Commerce custom object.
- *
- * @returns {string|null} The last FAQs export timestamp if available, otherwise null.
- */
-function getBrainCommerceFAQsLastExportTime() {
-    var brainCommerceProductCustomObject = getCurentOrNewBrainCommerceCOConfigs();
-    var braincommerceProductLastExport = brainCommerceProductCustomObject && brainCommerceProductCustomObject.custom.faqLastExport;
-    return braincommerceProductLastExport;
 }
 
 /**
@@ -155,42 +83,12 @@ function updateLastBaselineRun(timestamp) {
  *
  * @param {Date} timestamp - The timestamp to set as the last product export time.
  */
-function updateProductExportTimestampInBrainCommerceCOConfigs(timestamp) {
-    var brainCommerceCOConfigs = getCurentOrNewBrainCommerceCOConfigs();
-
-    if (brainCommerceCOConfigs) {
-        Transaction.wrap(function () {
-            brainCommerceCOConfigs.custom.productLastExport = timestamp;
-        });
-    }
-}
-
-/**
- * Updates the last product export timestamp in the Brain Commerce custom object configurations.
- *
- * @param {Date} timestamp - The timestamp to set as the last product export time.
- */
 function updateProductExportTimestampInRzlvCOConfigs(timestamp) {
-    const brainCommerceCOConfigs = getCurentOrNewRzlvCOConfigs();
+    const rzlvSnpdCOConfigs = getCurentOrNewRzlvCOConfigs();
 
-    if (brainCommerceCOConfigs) {
+    if (rzlvSnpdCOConfigs) {
         Transaction.wrap(function () {
-            brainCommerceCOConfigs.custom.productLastExport = timestamp;
-        });
-    }
-}
-
-/**
- * Updates the last FAQ export timestamp in the Brain Commerce custom object configurations.
- *
- * @param {Date} timestamp - The timestamp to set as the last FAQ export time.
- */
-function updateFAQExportTimestampInBrainCommerceCOConfigs(timestamp) {
-    var brainCommerceCOConfigs = getCurentOrNewBrainCommerceCOConfigs();
-
-    if (brainCommerceCOConfigs) {
-        Transaction.wrap(function () {
-            brainCommerceCOConfigs.custom.faqLastExport = timestamp;
+            rzlvSnpdCOConfigs.custom.productLastExport = timestamp;
         });
     }
 }
@@ -270,17 +168,11 @@ function updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceI
 }
 
 module.exports = {
-    getCurentOrNewBrainCommerceCOConfigs: getCurentOrNewBrainCommerceCOConfigs,
-    getBrainCommerceProductsLastExportTime: getBrainCommerceProductsLastExportTime,
     updateLastIncrementalRun: updateLastIncrementalRun,
     updateLastBaselineRun: updateLastBaselineRun,
-    getBrainCommerceFAQsLastExportTime: getBrainCommerceFAQsLastExportTime,
-    updateProductExportTimestampInBrainCommerceCOConfigs: updateProductExportTimestampInBrainCommerceCOConfigs,
     updateProductExportTimestampInRzlvCOConfigs: updateProductExportTimestampInRzlvCOConfigs,
     getRzlvProductsLastExportTime: getRzlvProductsLastExportTime,
-    updateFAQExportTimestampInBrainCommerceCOConfigs: updateFAQExportTimestampInBrainCommerceCOConfigs,
     compareInventoryRecordIfTimeComarisonFails: compareInventoryRecordIfTimeComarisonFails,
     updateInventoryRecordOnSuccessResponse: updateInventoryRecordOnSuccessResponse,
-    validateConfigForIngestion: validateConfigForIngestion,
     parseContent: parseContent
 };

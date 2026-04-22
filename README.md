@@ -2,9 +2,11 @@
 
 This is the repository for the int_brain_commerce integration. This integration enhances the app\_storefront\_base cartridge by providing product data including the following capabilities:
 
-* Shoppers can search for different products in the chat widget where they can get real-time product information  (name, price, availability, etc..).
+* Shoppers can search for different products in the chat widget where they can get real-time product information (name, price, availability, etc.).
 * Allows customers to search and explore products directly within the chat interface.
 * Provides personalized product recommendations based on user queries.
+* Automated product catalog ingestion to Rezolve SNPD with baseline and incremental export modes.
+* Ingestion status tracking and polling via custom objects.
 
 # Cartridge Path Considerations
 The int_brain_commerce integration cartridge requires the app\_storefront\_base cartridge. In your cartridge path, include the cartridges in the following order:
@@ -148,15 +150,30 @@ int_brain_commerce
 
 </details>
 
-4. Go to:  
-   `Administration Tools > Operations > Services > Credentials`  
-   Find and configure:  
-   `int_braincommerce.http.service` — set the URL to your Brain Commerce API.
+4. Go to:
+   `Administration Tools > Operations > Services > Credentials`
+   Find and configure:
+   - `int_braincommerce.http.service` — set the URL to your Brain Commerce API.
+   - `rezolvesnpd.http.ingest` — set the URL and credentials for the Rezolve SNPD ingestion API.
 
 ---
 
 ## 🕒 Jobs
 
 The setup is now complete. Jobs are ready to be **triggered or scheduled**.
+
+### Brain Commerce Jobs
+
+| Job | Description |
+|-----|-------------|
+| `BrainCommerce-ProductExport` | Exports product catalog to Brain Commerce |
+
+### Rezolve SNPD Jobs
+
+| Job | Description | Default Schedule |
+|-----|-------------|-----------------|
+| `RezolveSnpd-BaselineIngestion` | Full (BASELINE) export of the entire product catalog to Rezolve SNPD | Daily at 03:00 UTC |
+| `RezolveSnpd-IncrementalIngestion` | Incremental (PARTIAL_CATALOG) export of recently changed products, prices, and inventory | Every hour |
+| `RezolveSnpd-CheckStatus` | Polls the Rezolve API for the status of pending ingestion tasks | Every 15 minutes |
 
 > 📝 Note: Jobs can be configured in PIG environments, but **not in sandbox environments**.

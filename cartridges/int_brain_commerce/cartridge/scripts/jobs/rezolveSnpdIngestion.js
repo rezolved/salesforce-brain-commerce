@@ -3,12 +3,12 @@ const Logger = require('dw/system/Logger');
 const Status = require('dw/system/Status');
 const ProductMgr = require('dw/catalog/ProductMgr');
 const PriceBookMgr = require('dw/catalog/PriceBookMgr');
-const brainCommerceConfigsHelpers = require('*/cartridge/scripts/helpers/brainCommerceConfigsHelpers');
+const rzlvSnpdConfigsHelpers = require('*/cartridge/scripts/helpers/rzlvSnpdConfigsHelpers');
 const defaultCurrency = Site.current.getDefaultCurrency();
 const URLUtils = require('dw/web/URLUtils');
-const mappingConfigValue = Site.current.getCustomPreferenceValue('brainCommerceSnpdProductAttributeMapping');
+const mappingConfigValue = Site.current.getCustomPreferenceValue('rzlvSnpdProductAttributeMapping');
 const collectionName = Site.current.getCustomPreferenceValue('rezolveCollectionName');
-const mappingConfig = brainCommerceConfigsHelpers.parseContent(mappingConfigValue || '{}');
+const mappingConfig = rzlvSnpdConfigsHelpers.parseContent(mappingConfigValue || '{}');
 const locale = require('dw/util/Locale');
 const CustomObjectMgr = require('dw/object/CustomObjectMgr');
 const Transaction = require('dw/system/Transaction');
@@ -55,7 +55,7 @@ function getVariationAttribute(product, attribute) {
  * @returns {string} - The attribute value.
  */
 function getAttributeValue(product, attribute, isCustomAttribute) {
-    const brainCommerceUtils = require('*/cartridge/scripts/util/brainCommerceUtils');
+    const rzlvSnpdUtils = require('*/cartridge/scripts/util/rzlvSnpdUtils');
     let attributeValue = '';
 
     // Check if the attribute is a system attribute
@@ -66,10 +66,10 @@ function getAttributeValue(product, attribute, isCustomAttribute) {
             attributeValue = varationAttributeValue.displayValue || varationAttributeValue.value || '';
         }
     } else if (isCustomAttribute) { // Check if the attribute is a custom attribute
-        const customAttributeValue = brainCommerceUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
+        const customAttributeValue = rzlvSnpdUtils.safeGetProp(product.custom, attribute.sfccAttr, attribute.defaultValue);
         attributeValue = !empty(customAttributeValue) ? customAttributeValue : '';
     } else { // If the attribute is a system attribute
-        attributeValue = brainCommerceUtils.safeGetProp(product, attribute.sfccAttr, attribute.defaultValue) || '';
+        attributeValue = rzlvSnpdUtils.safeGetProp(product, attribute.sfccAttr, attribute.defaultValue) || '';
     }
 
     return attributeValue;
@@ -489,7 +489,7 @@ function sendRequest(
         // eslint-disable-next-line no-use-before-define
         createIngestionTask(uploadType, response, jobID, productsRequest.length, exportTimeSec, uploadTimeSec);
         productsToBeExported.forEach(function (product) {
-            brainCommerceConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
+            rzlvSnpdConfigsHelpers.updateInventoryRecordOnSuccessResponse(product, listPriceBookId, priceInventoryDataAttr);
         });
         Logger.info('Successfully sent ' + productsRequest.length + ' products to Rezolve SNPD service.');
         return { success: true, uploadTimeSec: uploadTimeSec };
@@ -517,7 +517,7 @@ function isProductEligibleForDeltaExport(product, listPriceBookId) {
 
     // Check if the product availability or price status has changed
     if (!isProductUpdated) {
-        isProductUpdated = brainCommerceConfigsHelpers.compareInventoryRecordIfTimeComarisonFails(
+        isProductUpdated = rzlvSnpdConfigsHelpers.compareInventoryRecordIfTimeComarisonFails(
             product,
             listPriceBookId,
             priceInventoryDataAttr
@@ -632,8 +632,8 @@ function baselineIngestion(parameters, jobID) {
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
     try {
         processProducts(ProductMgr.queryAllSiteProducts(), false, listPriceBookId, 'BASELINE', jobID);
-        brainCommerceConfigsHelpers.updateLastBaselineRun(jobStartTime);
-        brainCommerceConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
+        rzlvSnpdConfigsHelpers.updateLastBaselineRun(jobStartTime);
+        rzlvSnpdConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
     } catch (error) {
         Logger.error('Error in Full Product Export Job: {0}', error.message);
     }
@@ -649,11 +649,11 @@ function partialIngestion(parameters, jobID) {
     const jobStartTime = new Date();
     Logger.info('***** Partial Product Export Job Started *****');
     const listPriceBookId = parameters.listPriceBookId || getPriceBookId();
-    rzlvSnpdLastRun = brainCommerceConfigsHelpers.getRzlvProductsLastExportTime();
+    rzlvSnpdLastRun = rzlvSnpdConfigsHelpers.getRzlvProductsLastExportTime();
     try {
         processProducts(ProductMgr.queryAllSiteProducts(), true, listPriceBookId, 'PARTIAL', jobID);
-        brainCommerceConfigsHelpers.updateLastIncrementalRun(jobStartTime);
-        brainCommerceConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
+        rzlvSnpdConfigsHelpers.updateLastIncrementalRun(jobStartTime);
+        rzlvSnpdConfigsHelpers.updateProductExportTimestampInRzlvCOConfigs(jobStartTime);
     } catch (error) {
         Logger.error('Error in Full Product Export Job: {0}', error.message);
     }
